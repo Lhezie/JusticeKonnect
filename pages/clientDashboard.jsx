@@ -7,6 +7,7 @@ import ClientLayout from "../components/clientLayout";
 import { useRouter } from "next/navigation";
 import Loader from "../components/loader";
 import UseClientDashboardProvider from "../store/useclientDashboardProvider"
+import TestimonialCarousel from "../components/testimonialCarousel";
 
 const ClientDashboard = () => {
   const { user, setUser } = UseAuthProvider();
@@ -67,6 +68,9 @@ const ClientDashboard = () => {
             </div>
           ))}
         </div>
+
+        <TestimonialCarousel/>
+
       </div>
     </ClientLayout>
   );
