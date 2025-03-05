@@ -17,6 +17,7 @@
     "daisyui": "^4.12.24",
     "express": "^4.21.2",
     "formik": "^2.4.6",
+    "framer-motion": "^12.4.10",
     "jsonwebtoken": "^9.0.2",
     "next": "^15.2.0",
     "postcss": "^8.5.1",

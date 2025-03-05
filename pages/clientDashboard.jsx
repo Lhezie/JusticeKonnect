@@ -59,7 +59,7 @@ const ClientDashboard = () => {
             <div
               key={index}
               className={`relative px- py-6 rounded-xl text-center flex flex-col items-center justify-center transition-all duration-300
-                ${item.active ? "bg-blue-500 text-white" : "bg-gray-200"}`}
+                ${item.active ? "bg-blue-400 text-white" : "bg-gray-200"}`}
             >
               <p className="text-sm md:text-md lg:text-md font-medium">{item.label}</p>
               <p className="absolute bottom-2 right-4 text-sm md:text-md lg:text-md font-bold">
