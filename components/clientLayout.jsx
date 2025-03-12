@@ -1,10 +1,11 @@
 import React from "react";
 import { ClientNavBar } from "./clientNavBar";
 import { ClientSideBarContent } from "./clientSideBarContent";
+import { TbMessageFilled } from "react-icons/tb";
 
 const ClientLayout = ({ children }) => {
   return (
-    <div className="h-screen w-screen flex flex-col bg-blue-50">
+    <div className="h-screen w-screen flex flex-col bg-blue-50 relative">
       {/* Navbar - Fixed at the Top */}
       <div className="fixed w-full top-0 left-0 z-50 bg-white shadow-md">
         <ClientNavBar />
@@ -22,6 +23,11 @@ const ClientLayout = ({ children }) => {
         {/* Main Content Area with Scroll */}
         <div className="flex-1 p-4 overflow-auto h-[calc(100vh-4rem)]">
           {children}
+        </div>
+
+        <div className="absolute right-3 bottom-3 text-5xl ">
+          <TbMessageFilled className="text-blue-500" />
+          
         </div>
       </div>
     </div>

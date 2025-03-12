@@ -23,3 +23,14 @@ model User {
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 }
+
+Case{
+  
+  userId         Int
+  title          String
+  description    String
+  status         String  @default("unapproved")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  assignedTo    User? @relation(fields: [assignedToId], references: [id])
+}

@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import Loader from "../components/loader";
 import UseClientDashboardProvider from "../store/useclientDashboardProvider"
 import TestimonialCarousel from "../components/testimonialCarousel";
+import QuickActions from "../components/quickActions";
 
 const ClientDashboard = () => {
   const { user, setUser } = UseAuthProvider();
@@ -48,20 +49,20 @@ const ClientDashboard = () => {
           <Formateddate />
         </div>
 
-        <div className="mt-2">
+        <div className="mt-2 block md:hidden">
           Hi, <span className="font-bold">{user?.fullName}</span>
         </div>
-        <div className="pt-2 text-lg font-semibold">Case Overview</div>
+        <div className="pt-6 text-md md:text-lg font-semibold">Case Overview</div>
 
         {/* Case Overview Cards */}
         <div className="grid grid-cols-3 gap-2 mt-4 justify-center">
           {caseOverviewData.map((item, index) => (
             <div
               key={index}
-              className={`relative px- py-6 rounded-xl text-center flex flex-col items-center justify-center transition-all duration-300
+              className={`relative text-sm md:text-md lg:text-md px- py-6 rounded-xl text-center flex flex-col items-center justify-center transition-all duration-300
                 ${item.active ? "bg-blue-400 text-white" : "bg-gray-200"}`}
             >
-              <p className="text-sm md:text-md lg:text-md font-medium">{item.label}</p>
+              <p className="text-sm md:text-md lg:text-md font-medium ">{item.label}</p>
               <p className="absolute bottom-2 right-4 text-sm md:text-md lg:text-md font-bold">
                 {item.count}
               </p>
@@ -70,6 +71,8 @@ const ClientDashboard = () => {
         </div>
 
         <TestimonialCarousel/>
+
+        <QuickActions/>
 
       </div>
     </ClientLayout>

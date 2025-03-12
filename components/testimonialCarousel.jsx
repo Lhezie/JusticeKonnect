@@ -13,7 +13,7 @@ const testimonials = [
 const TestimonialCarousel = () => {
   return (
     <div className="mt-6">
-    <h2 className="text-lg font-semibold">Testimonials</h2>
+    <h2 className="text-md md:text-lg font-semibold pb-3">Testimonials</h2>
     <div className="flex gap-4 overflow-x-auto mt-2">
       {testimonials.map((testimonial) => (
         <div key={testimonial.id} className="p-4 bg-gray-200 rounded-lg min-w-[200px]">
