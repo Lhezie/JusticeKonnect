@@ -55,9 +55,9 @@ export const ClientSideBarContent = () => {
           {/* New Case */}
           <div className="pt-6">
             <div
-              onClick={() => router.push("/addNewCase")}
+              onClick={() => router.push("/createNewCase")}
               className={`flex items-center py-2 px-2 hover:gradientButton ${
-                pathname === "/addNewCase" ? "gradientButton" : ""
+                pathname === "/createNewCase" ? "py-2 px-2 gradientButton" : ""
               }`}
             >
               <VscLaw size={24} />

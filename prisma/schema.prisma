@@ -24,13 +24,20 @@ model User {
   updated_at DateTime @updatedAt
 }
 
-Case{
-  
+Model Case{
+  id             Int @id @default(autoincrement())
   userId         Int
-  title          String
-  description    String
-  status         String  @default("unapproved")
+  issueType      String
+  address        String
+  city           String
+  zipCode        String  
+  country        String  
+  caseDescription String
+  additionalInfo: String?
+  status         String  @default("Open")
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   assignedTo    User? @relation(fields: [assignedToId], references: [id])
 }
+
+
