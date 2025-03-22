@@ -2,14 +2,15 @@ import React from "react";
 import ClientLayout from "../components/clientLayout";
 import { IoIosArrowDropleft } from "react-icons/io";
 import { Button, SelectInput } from "../components/clientComponent";
-import issueTypeProvider from "../store/useIssueTypeProvider";
-import { Formik, Form, ErrorMessage } from "formik";
+import useIssueTypeProvider from "../store/useIssueTypeProvider";
+import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
 import axios from "axios";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-// validation schema
+
+// Validation Schema
 const validationSchema = Yup.object().shape({
   issueType: Yup.string().required("Issue Type is required"),
   address: Yup.string().required("Address is required"),
@@ -27,35 +28,32 @@ const validationSchema = Yup.object().shape({
     }),
 });
 
-//Handle form submission
+//  Handle form submission
 const handleSubmit = async (values, { setSubmitting, resetForm }) => {
   try {
     const formData = new FormData();
-    formData.append("issueType", values.issueType);
-    formData.append("address", values.address);
-    formData.append("city", values.city);
-    formData.append("zipCode", values.zipCode);
-    formData.append("country", values.country);
-    formData.append("caseDescription", values.caseDescription);
-    formData.append("additionalInfo", values.additionalInfo);
+    Object.entries(values).forEach(([key, value]) => {
+      formData.append(key, value);
+    });
 
-    await axios.post("http://localhost:5000/api/upload", formData, {
+    await axios.post("/api/upload", formData, {
       withCredentials: true,
     });
 
     toast.success("Submitted successfully!");
-    resetForm();
+
+    resetForm(); // Reset Form
+    document.getElementById("fileInput").value = ""; // Reset file input manually
   } catch (error) {
-    toast.error(
-      error.response?.data?.message ||
-        "Case submission failed! Please try again."
-    );
+    toast.error(error.response?.data?.message || "Case submission failed!");
   }
   setSubmitting(false);
 };
 
 const CreateNewCase = () => {
-  const { issueTypes } = issueTypeProvider();
+  // const issueTypes = useIssueTypeProvider();
+  const { issueTypes = [] } = useIssueTypeProvider();
+
   return (
     <div>
       <ToastContainer />
@@ -68,6 +66,7 @@ const CreateNewCase = () => {
             <div>Submit a New Case</div>
           </div>
 
+          {/* Formik Form */}
           <Formik
             initialValues={{
               issueType: "",
@@ -81,15 +80,13 @@ const CreateNewCase = () => {
             validationSchema={validationSchema}
             onSubmit={handleSubmit}
           >
-            {({ formik, isSubmitting, setFieldValue }) => (
+            {({ setFieldValue, isSubmitting }) => (
               <Form className="space-y-4">
                 {/* Issue Type */}
                 <SelectInput
                   label="Issue Type"
                   name="issueType"
                   options={issueTypes}
-                  formik={formik}
-                  className="h-[38px]"
                 />
                 <ErrorMessage
                   name="issueType"
@@ -98,43 +95,43 @@ const CreateNewCase = () => {
                 />
 
                 <div className="md:flex w-full gap-3">
-                   {/* Address */}
-                <div className="w-full">
-                  <input
-                    type="text"
-                    name="address"
-                    placeholder="Address"
-                    className="h-[38px] w-full px-2  p-[6px] placeholder:text-sm shadow-md rounded-md text-black placeholder:text-gray-700 bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400 "
-                  />
-                  <ErrorMessage
-                    name="address"
-                    component="div"
-                    className="text-red-500 text-sm"
-                  />
-                </div>
+                  {/* Address */}
+                  <div className="w-full">
+                    <Field
+                      type="text"
+                      name="address"
+                      placeholder="Address"
+                      className="h-[38px] w-full px-2 placeholder:text-sm shadow-md rounded-md text-black placeholder:text-gray-700 bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    />
+                    <ErrorMessage
+                      name="address"
+                      component="div"
+                      className="text-red-500 text-sm"
+                    />
+                  </div>
 
-                {/* City */}
-                <div className="text-sm w-full pt-4 md:pt-0">
-                  <input
-                    type="text"
-                    name="city"
-                    placeholder="City"
-                    className=" h-[38px] w-full   p-[6px] placeholder:text-sm shadow-md rounded-md text-black placeholder:text-gray-700 bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                  />
-                  <ErrorMessage
-                    name="city"
-                    component="div"
-                    className="text-red-500 text-sm"
-                  />
+                  {/* City */}
+                  <div className="text-sm w-full">
+                    <Field
+                      type="text"
+                      name="city"
+                      placeholder="City"
+                      className="h-[38px] w-full placeholder:text-sm shadow-md rounded-md text-black placeholder:text-gray-700 bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    />
+                    <ErrorMessage
+                      name="city"
+                      component="div"
+                      className="text-red-500 text-sm"
+                    />
+                  </div>
                 </div>
-               </div>
 
                 {/* Zip Code */}
-                <input
+                <Field
                   type="text"
                   name="zipCode"
                   placeholder="Zip Code"
-                  className=" h-[38px] w-full md:w-1/2 p-[6px] placeholder:text-sm shadow-md rounded-md text-black placeholder:text-gray-700 bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  className="h-[38px] w-full md:w-1/2 placeholder:text-sm shadow-md rounded-md text-black placeholder:text-gray-700 bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400"
                 />
                 <ErrorMessage
                   name="zipCode"
@@ -143,57 +140,56 @@ const CreateNewCase = () => {
                 />
 
                 {/* Country */}
+                <Field
+                  type="text"
+                  name="country"
+                  placeholder="Country"
+                  className="h-[38px] w-full md:w-1/2 placeholder:text-sm shadow-md rounded-md text-black placeholder:text-gray-700 bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                />
+                <ErrorMessage
+                  name="country"
+                  component="div"
+                  className="text-red-500 text-sm"
+                />
+
+                {/* Case Description */}
+                <Field
+                  as="textarea"
+                  name="caseDescription"
+                  placeholder="Summarize the Issue"
+                  className="w-full h-32 md:w-1/2 placeholder:text-sm shadow-md rounded-md text-black placeholder:text-gray-700 bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                />
+                <ErrorMessage
+                  name="caseDescription"
+                  component="div"
+                  className="text-red-500 text-sm"
+                />
+
+                {/* File Upload */}
                 <div>
                   <input
-                    type="text"
-                    name="country"
-                    placeholder="Country"
-                    className="h-[38px] w-full md:w-1/2 p-[6px] placeholder:text-sm shadow-md rounded-md text-black placeholder:text-gray-700 bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    id="fileInput"
+                    type="file"
+                    name="additionalInfo"
+                    accept="application/pdf"
+                    onChange={(event) => {
+                      const file = event.currentTarget.files[0];
+                      setFieldValue("additionalInfo", file);
+                    }}
+                    className="h-[38px] w-full md:w-1/2 placeholder:text-sm shadow-md rounded-md text-black placeholder:text-black bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400"
                   />
                   <ErrorMessage
-                    name="country"
+                    name="additionalInfo"
                     component="div"
                     className="text-red-500 text-sm"
                   />
                 </div>
 
-                {/* Case Description */}
-                <textarea
-                  name="caseDescription"
-                  placeholder="Summarize the Issue"
-                  className="w-full h-32 md:w-1/2 p-[6px] placeholder:text-sm shadow-md rounded-md text-black placeholder:text-gray-700 bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                />
-                <ErrorMessage
-                  name="caseDescription"
-                  component="div"
-                  className="text-red-500 text-sm"
-                />
-
-                {/*handling file upload*/}
-                <div>
-                <input
-                  type="file"
-                  name="additionalInfo"
-                  accept="application/pdf"
-                  onChange={(event) => {
-                    const file = event.currentTarget.files[0];
-                    setFieldValue("additionalInfo", file);
-                  }}
-                  className=" h-[38px] w-full md:w-1/2 p-[6px] placeholder:text-sm shadow-md rounded-md text-black placeholder:text-black bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                />
-                <ErrorMessage
-                  name="additionalInfo"
-                  component="div"
-                  className="text-red-500 text-sm"
-                />
-                </div>
-
-
                 {/* Submit Button */}
                 <Button
                   type="submit"
-                  isLoading={formik.isSubmitting} // Pass Formik's isSubmitting state
-                  disabled={formik.isSubmitting}
+                  isLoading={isSubmitting} 
+                  disabled={isSubmitting}
                   className="w-full bg-blue-400 text-white p-3 rounded-md font-semibold"
                 >
                   Submit Case

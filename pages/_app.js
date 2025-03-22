@@ -2,14 +2,14 @@ import "../styles/globals.css";
 import "daisyui/dist/full.css";
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
-import UseLoadingProvider from "../store/UseLoadingProvider"; // Zustand store
+import useLoadingProvider from "../store/useLoadingProvider"; // Correct import casing
 import UseAuthProvider from "../store/authProvider"; // Zustand store
 
 // Dynamically import Loader with SSR disabled
 const Loader = dynamic(() => import("../components/loader.jsx"), { ssr: false });
 
 function MyApp({ Component, pageProps }) {
-  const { loading, setLoading } = UseLoadingProvider();
+  const { loading, setLoading } = useLoadingProvider();
   const {user, setUser} = UseAuthProvider(); // New state to check if the component has mounted
 
   useEffect(() => {

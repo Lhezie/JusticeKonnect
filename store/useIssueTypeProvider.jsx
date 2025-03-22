@@ -5,6 +5,7 @@ const useIssueTypeProvider = create((set) => ({
     { label: "Battery", value: "battery" },
     { label: "Property Theft", value: "property_theft" },
     { label: "Human Rights Violation", value: "human_rights_violation" },
+
     { label: "Others", value: "others" },
   ],
 }));
