@@ -3,6 +3,7 @@ Justice Connect is a digital platform that bridges the gap between clients and v
 
 # How To Run
 git clone https://github.com/Lhezie/JusticeKonnect.git
+
 cd JusticeKonnect
 
 # Install Dependencies
