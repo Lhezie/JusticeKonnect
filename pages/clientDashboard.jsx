@@ -25,6 +25,7 @@ const ClientDashboard = () => {
         });
 
         const data = await response.json();
+        console.log('fetched data', data)
         if (data?.user) {
           setUser(data.user);
           setLoading(false);
