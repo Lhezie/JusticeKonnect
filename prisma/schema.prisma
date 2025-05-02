@@ -19,7 +19,7 @@ model User {
   email              String        @unique
   password           String        @db.VarChar(255)
   phoneNumber        String        @unique
-  role               String        @default("client") // "client" or "lawyer"
+  role               String        @default("client")
   stripeCustomerId   String?       @unique
   isVerified         Boolean       @default(false)
   created_at         DateTime      @default(now())
@@ -28,11 +28,23 @@ model User {
   messagesReceived   Message[]     @relation("UserMessagesReceived")
   clientAppointments Appointment[] @relation("ClientAppointments")
   lawyerAppointments Appointment[] @relation("LawyerAppointments")
-  payments           Payment[]     @relation("UserPayments") // Unified payments field
+  payments           Payment[]     @relation("UserPayments")
   blogs              Blog[]
   lawyerProfile      Lawyer?       @relation("UserLawyerProfile")
   clientProfile      Client?       @relation("UserClientProfile")
 }
+
+model Appointment {
+  id         Int      @id @default(autoincrement())
+  client     User     @relation("ClientAppointments", fields: [clientId], references: [id])
+  clientId   Int
+  lawyer     User     @relation("LawyerAppointments", fields: [lawyerId], references: [id])
+  lawyerId   Int
+  start      DateTime
+  end        DateTime
+  created_at DateTime @default(now())
+}
+
 
 model Lawyer {
   id             Int      @id @default(autoincrement())
@@ -76,17 +88,9 @@ model Case {
   lawyer Lawyer? @relation("LawyerCases", fields: [lawyerId], references: [id], map: "LawyerCaseRelation")
 }
 
-model Appointment {
-  id        Int      @id @default(autoincrement())
-  clientId  Int
-  lawyerId  Int
-  date      DateTime
-  status    String   @default("scheduled") // "scheduled", "completed", "cancelled"
-  createdAt DateTime @default(now())
 
-  client User @relation("ClientAppointments", fields: [clientId], references: [id])
-  lawyer User @relation("LawyerAppointments", fields: [lawyerId], references: [id])
-}
+
+
 
 model Payment {
   id            Int      @id @default(autoincrement())

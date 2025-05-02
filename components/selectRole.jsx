@@ -1,7 +1,7 @@
 "use client"; // Ensures client-side rendering
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
 
 import {
@@ -17,10 +17,11 @@ import "react-toastify/dist/ReactToastify.css";
 
 export default function SelectRole() {
   const router = useRouter();
+  const pathname = usePathname();
 
   return (
     <div>
-      <ToastContainer />
+      {/* {pathname === "/selectTole" ? <ToastContainer /> : ""} */}
       <div className="flex justify-center items-center min-h-screen h-fit px-4 ">
         <div className="w-full max-w-md p-6 rounded-xl shadow-lg">
           {/* LOGO */}
