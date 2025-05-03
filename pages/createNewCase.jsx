@@ -5,7 +5,7 @@ import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import ClientLayout from "../components/clientLayout";
+import {ClientLayout} from "../components/clientLayout";
 import { IoIosArrowDropleft } from "react-icons/io";
 import { Button, SelectInput } from "../components/clientComponent";
 import useIssueTypeProvider from "../store/useIssueTypeProvider";

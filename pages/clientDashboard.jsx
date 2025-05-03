@@ -3,7 +3,7 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import UseAuthProvider from "../store/authProvider"; // Import the Case Provider
 import { Formateddate } from "../utils/date";
-import ClientLayout from "../components/clientLayout";
+import {ClientLayout } from "../components/clientLayout";
 import { useRouter } from "next/navigation";
 import Loader from "../components/loader";
 import UseClientDashboardProvider from "../store/useclientDashboardProvider";
