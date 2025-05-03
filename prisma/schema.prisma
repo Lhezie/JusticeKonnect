@@ -1,0 +1,160 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Appointment {
+  id                              Int      @id @default(autoincrement())
+  clientId                        Int
+  lawyerId                        Int
+  date                            DateTime
+  status                          String   @default("scheduled")
+  createdAt                       DateTime @default(now())
+  User_Appointment_clientIdToUser User     @relation("Appointment_clientIdToUser", fields: [clientId], references: [id])
+  User_Appointment_lawyerIdToUser User     @relation("Appointment_lawyerIdToUser", fields: [lawyerId], references: [id])
+  VideoReviews                    VideoReview[] @relation("AppointmentVideoReviews")
+
+  @@index([clientId], map: "Appointment_clientId_fkey")
+  @@index([lawyerId], map: "Appointment_lawyerId_fkey")
+}
+
+model CallSession {
+  id          Int      @id @default(autoincrement())
+  lawyerId    Int
+  clientId    Int
+  status      String   @default("ongoing") // e.g., ongoing, completed, missed
+  startTime   DateTime @default(now())
+  endTime     DateTime?
+  createdAt   DateTime @default(now())
+  
+  Lawyer      Lawyer   @relation("LawyerCallSessions", fields: [lawyerId], references: [id])
+  Client      Client   @relation("ClientCallSessions", fields: [clientId], references: [id])
+
+  @@index([lawyerId], map: "CallSession_lawyerId_fkey")
+  @@index([clientId], map: "CallSession_clientId_fkey")
+}
+
+model VideoReview {
+  id            Int      @id @default(autoincrement())
+  appointmentId Int
+  notes         String
+  createdAt     DateTime @default(now())
+
+  Appointment   Appointment @relation("AppointmentVideoReviews", fields: [appointmentId], references: [id])
+
+  @@index([appointmentId], map: "VideoReview_appointmentId_fkey")
+}
+
+model Blog {
+  id        Int      @id @default(autoincrement())
+  title     String
+  content   String
+  authorId  Int
+  createdAt DateTime @default(now())
+  User      User     @relation(fields: [authorId], references: [id])
+
+  @@index([authorId], map: "Blog_authorId_fkey")
+}
+
+model Case {
+  id             Int      @id @default(autoincrement())
+  title          String   // Required
+  description    String   // Required
+  status         String   @default("open") // Optional, defaults to "open"
+  clientId       Int?     // Optional
+  lawyerId       Int?     // Optional
+  issueType      String?  // Optional
+  address        String?  // Optional
+  city           String?  // Optional
+  zipCode        String?  // Optional
+  country        String?  // Optional
+  additionalInfo String?  // Optional
+  createdAt      DateTime @default(now()) // Automatically set
+  updatedAt      DateTime @default(now())
+  Client         Client?   @relation(fields: [clientId], references: [id], map: "ClientCaseRelation")
+  Lawyer         Lawyer?  @relation(fields: [lawyerId], references: [id], map: "LawyerCaseRelation")
+
+  @@index([clientId], map: "ClientCaseRelation")
+  @@index([lawyerId], map: "LawyerCaseRelation")
+}
+
+model Client {
+  id      Int     @id @default(autoincrement())
+  userId  Int     @unique
+  address String?
+  Case    Case[]
+  User    User    @relation(fields: [userId], references: [id])
+  
+  CallSessions   CallSession[] @relation("ClientCallSessions")
+}
+
+model Lawyer {
+  id             Int      @id @default(autoincrement())
+  userId         Int?     @unique
+  professionalId String   @unique
+  licenseNumber  String   @unique
+  name           String
+  password       String
+  role           String
+  organization   String?
+  specialty      String?
+  bio            String?
+  Case           Case[]
+  email          String   @unique
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  User           User?    @relation(fields: [userId], references: [id])
+  
+  CallSessions   CallSession[] @relation("LawyerCallSessions")
+}
+
+model Message {
+  id                            Int      @id @default(autoincrement())
+  senderId                      Int
+  receiverId                    Int
+  content                       String
+  createdAt                     DateTime @default(now())
+  User_Message_receiverIdToUser User     @relation("Message_receiverIdToUser", fields: [receiverId], references: [id])
+  User_Message_senderIdToUser   User     @relation("Message_senderIdToUser", fields: [senderId], references: [id])
+
+  @@index([receiverId], map: "Message_receiverId_fkey")
+  @@index([senderId], map: "Message_senderId_fkey")
+}
+
+model Payment {
+  id            Int      @id @default(autoincrement())
+  userId        Int
+  role          String   @default("client")
+  amount        Float
+  status        String   @default("completed")
+  transactionId String   @unique
+  createdAt     DateTime @default(now())
+  User          User     @relation(fields: [userId], references: [id])
+
+  @@index([userId], map: "Payment_userId_fkey")
+}
+
+model User {
+  id                                     Int           @id @default(autoincrement())
+  fullName                               String
+  email                                  String        @unique
+  password                               String        @db.VarChar(255)
+  phoneNumber                            String        @unique
+  created_at                             DateTime      @default(now())
+  role                                   String        @default("client")
+  updated_at                             DateTime
+  isVerified                             Boolean       @default(false)
+  stripeCustomerId                       String?       @unique
+  Appointment_Appointment_clientIdToUser Appointment[] @relation("Appointment_clientIdToUser")
+  Appointment_Appointment_lawyerIdToUser Appointment[] @relation("Appointment_lawyerIdToUser")
+  Blog                                   Blog[]
+  Client                                 Client?
+  Lawyer                                 Lawyer?
+  Message_Message_receiverIdToUser       Message[]     @relation("Message_receiverIdToUser")
+  Message_Message_senderIdToUser         Message[]     @relation("Message_senderIdToUser")
+  Payment                                Payment[]
+}
