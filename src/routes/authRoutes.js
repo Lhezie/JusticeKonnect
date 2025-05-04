@@ -1,7 +1,7 @@
 import express from 'express';
 import rateLimit from 'express-rate-limit';
 import { signUpController, loginController } from '../controllers/authController.js';
-import { validateSignUp, validateLogin,validateProfileUpdate,validatePasswordChange } from '../middleware/validate.js';
+import { validateSignUp, validateLogin } from '../middleware/validate.js';
 
 // Configure login rate limiter
 const loginLimiter = rateLimit({
@@ -15,8 +15,6 @@ const router = express.Router();
 // Auth routes
 router.post('/signup', validateSignUp, signUpController);
 router.post('/login', loginLimiter, validateLogin, loginController);
-// router.put('/profile', validateProfileUpdate, profileUpdateController);
-// router.put('/change-password', validatePasswordChange, passwordChangeController);
 
 export default router;
 

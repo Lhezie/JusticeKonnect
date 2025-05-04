@@ -43,32 +43,16 @@ export const updateCase = async (req, res) => {
 export const getCases = async (req, res) => {
   try {
     const lawyerId = req.user.id;
-    console.log('Lawyer ID from token:', lawyerId); // Debug log
-
     const cases = await prisma.case.findMany({
       where: { lawyerId },
+      
     });
-
-    console.log('Cases found:', cases); // Debug log
     return res.json(cases);
   } catch (error) {
     console.error(error);
     return res.status(500).json({ error: 'Failed to fetch cases' });
   }
 };
-// export const getCases = async (req, res) => {
-//   try {
-//     const lawyerId = req.user.id;
-//     const cases = await prisma.case.findMany({
-//       where: { lawyerId },
-//       // Optionally include related data, e.g., client info
-//     });
-//     return res.json(cases);
-//   } catch (error) {
-//     console.error(error);
-//     return res.status(500).json({ error: 'Failed to fetch cases' });
-//   }
-// };
 
 export const getCaseById = async (req, res) => {
     try {
