@@ -2,8 +2,20 @@
 import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
 import * as cookie from 'cookie';
+import nodemailer from 'nodemailer';
 
-const prisma = new PrismaClient();
+const prisma = global.prisma || new PrismaClient();
+if (process.env.NODE_ENV === 'development') global.prisma = prisma;
+
+// Configure email transporter 
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST,
+  port: process.env.SMTP_PORT,
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS
+  }
+});
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -21,142 +33,126 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Unauthorized - No token' });
   }
   
+  const { lawyerId, start, end } = req.body;
+  
+  if (!lawyerId || !start || !end) {
+    return res.status(400).json({ error: 'Missing required parameters' });
+  }
+  
   try {
     // Verify the token
     const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
     
-    // Get request data
-    const { clientId, lawyerId, start, end } = req.body;
-    
-    // Validate required fields
-    if (!clientId || !lawyerId || !start || !end) {
-      return res.status(400).json({ error: 'Missing required fields' });
-    }
-    
-    // Check if the authenticated user is the client
-    if (decoded.id !== parseInt(clientId)) {
-      return res.status(403).json({ error: 'Not authorized to book for this client' });
-    }
-    
-    // Parse dates
-    const startDate = new Date(start);
-    const endDate = new Date(end);
-    
-    // Check if the slot is available
-    const lawyer = await prisma.lawyer.findUnique({
-      where: { id: parseInt(lawyerId) },
+    // Find the client profile
+    const client = await prisma.client.findUnique({
+      where: { userId: decoded.id },
       include: {
-        availabilities: {
-          where: {
-            OR: [
-              // One-time availability that contains this slot
-              {
-                isRecurring: false,
-                startTime: { lte: startDate },
-                endTime: { gte: endDate }
-              },
-              // Recurring availability for this day of week
-              {
-                isRecurring: true
-              }
-            ]
+        user: true
+      }
+    });
+    
+    if (!client) {
+      return res.status(404).json({ error: 'Client profile not found' });
+    }
+    
+    // Check if client has an approved case with this lawyer
+    const approvedCase = await prisma.case.findFirst({
+      where: {
+        clientId: client.id,
+        lawyerId: parseInt(lawyerId),
+        status: 'APPROVED'
+      },
+      include: {
+        lawyer: {
+          include: {
+            user: true
           }
         }
       }
     });
     
-    if (!lawyer) {
-      return res.status(404).json({ error: 'Lawyer not found' });
+    if (!approvedCase) {
+      return res.status(403).json({
+        error: 'You can only book appointments for approved cases with your assigned lawyer'
+      });
     }
     
-    // Check if there's an availability slot that contains this appointment time
-    let slotAvailable = false;
-    
-    // Check non-recurring availabilities
-    const nonRecurringSlots = lawyer.availabilities.filter(a => !a.isRecurring);
-    for (const slot of nonRecurringSlots) {
-      if (slot.startTime <= startDate && slot.endTime >= endDate) {
-        slotAvailable = true;
-        break;
-      }
-    }
-    
-    // Check recurring availabilities
-    if (!slotAvailable) {
-      const dayOfWeek = startDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
-      const recurringSlots = lawyer.availabilities.filter(a => a.isRecurring);
-      
-      for (const slot of recurringSlots) {
-        const recurringDays = JSON.parse(slot.recurringDays || '[]');
-        
-        if (recurringDays.includes(dayOfWeek)) {
-          // Extract time parts for comparison
-          const startTime = slot.startTime.toTimeString().substring(0, 5);
-          const endTime = slot.endTime.toTimeString().substring(0, 5);
-          
-          const appointmentStartTime = startDate.toTimeString().substring(0, 5);
-          const appointmentEndTime = endDate.toTimeString().substring(0, 5);
-          
-          if (startTime <= appointmentStartTime && endTime >= appointmentEndTime) {
-            slotAvailable = true;
-            break;
-          }
-        }
-      }
-    }
-    
-    if (!slotAvailable) {
-      return res.status(400).json({ error: 'Selected time slot is not available' });
-    }
-    
-    // Check if there's an existing appointment that overlaps
+    // Check lawyer's availability
     const existingAppointment = await prisma.appointment.findFirst({
       where: {
-        lawyerId: lawyer.userId,
+        lawyerId: approvedCase.lawyer.user.id,
         OR: [
-          // Completely overlapping
+          // Check for overlapping appointments
           {
-            start: { lte: startDate },
-            end: { gte: endDate }
-          },
-          // Start overlaps
-          {
-            start: { lte: startDate },
-            end: { gt: startDate }
-          },
-          // End overlaps
-          {
-            start: { lt: endDate },
-            end: { gte: endDate }
-          },
-          // Contained within
-          {
-            start: { gte: startDate },
-            end: { lte: endDate }
+            start: { lt: new Date(end) },
+            end: { gt: new Date(start) }
           }
         ]
       }
     });
     
     if (existingAppointment) {
-      return res.status(400).json({ error: 'This time slot is already booked' });
+      return res.status(400).json({
+        error: 'Selected time slot is not available'
+      });
     }
     
     // Create the appointment
     const appointment = await prisma.appointment.create({
       data: {
-        clientId: parseInt(clientId),
-        lawyerId: lawyer.userId,
-        start: startDate,
-        end: endDate,
-        created_at: new Date()
+        clientId: client.user.id,
+        lawyerId: approvedCase.lawyer.user.id,
+        start: new Date(start),
+        end: new Date(end),
+        status: 'SCHEDULED'
       }
     });
     
-    // Return success
+    // Send email notifications
+    try {
+      // Notification to client
+      await transporter.sendMail({
+        from: '"JusticeConnect" <noreply@justiceconnect.com>',
+        to: client.user.email,
+        subject: 'Appointment Confirmation',
+        html: `
+          <h1>Appointment Confirmed</h1>
+          <p>Dear ${client.user.fullName},</p>
+          <p>Your appointment with ${approvedCase.lawyer.user.fullName} has been scheduled.</p>
+          <p>Date: ${new Date(start).toLocaleDateString()}</p>
+          <p>Time: ${new Date(start).toLocaleTimeString()} - ${new Date(end).toLocaleTimeString()}</p>
+          <br/>
+          <p>Best regards,<br/>JusticeConnect Team</p>
+        `
+      });
+      
+      // Notification to lawyer
+      await transporter.sendMail({
+        from: '"JusticeConnect" <noreply@justiceconnect.com>',
+        to: approvedCase.lawyer.user.email,
+        subject: 'New Appointment Scheduled',
+        html: `
+          <h1>New Appointment</h1>
+          <p>Dear ${approvedCase.lawyer.user.fullName},</p>
+          <p>A new appointment has been scheduled with ${client.user.fullName}.</p>
+          <p>Date: ${new Date(start).toLocaleDateString()}</p>
+          <p>Time: ${new Date(start).toLocaleTimeString()} - ${new Date(end).toLocaleTimeString()}</p>
+          <br/>
+          <p>Best regards,<br/>JusticeConnect Team</p>
+        `
+      });
+    } catch (emailError) {
+      console.error('Failed to send email notifications:', emailError);
+    }
+    
     res.status(201).json({
       success: true,
-      appointment
+      appointment: {
+        id: appointment.id,
+        start: appointment.start,
+        end: appointment.end,
+        status: appointment.status
+      }
     });
   } catch (error) {
     console.error('Error booking appointment:', error);
@@ -167,7 +163,13 @@ export default async function handler(req, res) {
     
     res.status(500).json({
       error: 'Failed to book appointment',
-      details: error.message
+      details: process.env.NODE_ENV === 'development' ? error.message : 'Internal Server Error'
     });
   }
 }
+
+export const config = {
+  api: {
+    bodyParser: true,
+  },
+};

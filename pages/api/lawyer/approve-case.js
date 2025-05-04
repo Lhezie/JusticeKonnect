@@ -2,8 +2,20 @@
 import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
 import * as cookie from 'cookie';
+import nodemailer from 'nodemailer';
 
-const prisma = new PrismaClient();
+const prisma = global.prisma || new PrismaClient();
+if (process.env.NODE_ENV === 'development') global.prisma = prisma;
+
+// Configure email transporter 
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST,
+  port: process.env.SMTP_PORT,
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS
+  }
+});
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -21,7 +33,7 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Unauthorized - No token' });
   }
   
-  const { caseId } = req.body;
+  const { caseId, additionalNotes } = req.body;
   
   if (!caseId) {
     return res.status(400).json({ error: 'Case ID is required' });
@@ -47,7 +59,8 @@ export default async function handler(req, res) {
     const caseToApprove = await prisma.case.findFirst({
       where: {
         id: parseInt(caseId),
-        lawyerId: user.lawyerProfile.id
+        lawyerId: user.lawyerProfile.id,
+        status: 'SUBMITTED' // Only allow approval of submitted cases
       },
       include: {
         client: {
@@ -66,18 +79,50 @@ export default async function handler(req, res) {
     const updatedCase = await prisma.case.update({
       where: { id: parseInt(caseId) },
       data: {
-        status: 'approved',
-        updatedAt: new Date()
+        status: 'APPROVED',
+        approvedAt: new Date(),
+        lawyerNotes: additionalNotes || null
+      },
+      include: {
+        client: {
+          include: {
+            user: true
+          }
+        }
       }
     });
     
-    // In a production environment, you would send a notification to the client
-    // For now, just log it
-    console.log(`Case ${caseId} approved by lawyer ${user.lawyerProfile.id}`);
+    // Send email notification to client
+    try {
+      await transporter.sendMail({
+        from: '"JusticeConnect" <noreply@justiceconnect.com>',
+        to: caseToApprove.client.user.email,
+        subject: 'Your Case Has Been Approved',
+        html: `
+          <h1>Case Approval Notification</h1>
+          <p>Dear ${caseToApprove.client.user.fullName},</p>
+          <p>Your case (${updatedCase.title}) has been approved by ${user.fullName}.</p>
+          ${additionalNotes ? `<p>Additional Notes: ${additionalNotes}</p>` : ''}
+          <p>You can now book an appointment with your assigned lawyer.</p>
+          <br/>
+          <p>Best regards,<br/>JusticeConnect Team</p>
+        `
+      });
+    } catch (emailError) {
+      console.error('Failed to send email notification:', emailError);
+    }
     
     res.status(200).json({
       success: true,
-      case: updatedCase
+      case: {
+        id: updatedCase.id,
+        title: updatedCase.title,
+        status: updatedCase.status,
+        client: {
+          id: caseToApprove.client.user.id,
+          name: caseToApprove.client.user.fullName
+        }
+      }
     });
   } catch (error) {
     console.error('Error approving case:', error);
@@ -88,7 +133,7 @@ export default async function handler(req, res) {
     
     res.status(500).json({
       error: 'Failed to approve case',
-      details: error.message
+      details: process.env.NODE_ENV === 'development' ? error.message : 'Internal Server Error'
     });
   }
 }
