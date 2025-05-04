@@ -69,4 +69,23 @@ a {
 }
 
 
+/* Available slot styling */
+.available-slot {
+  background-color: rgba(40, 167, 69, 0.2) !important;
+  opacity: 0.6;
+  cursor: pointer;
+}
+
+.available-slot:hover {
+  background-color: rgba(40, 167, 69, 0.4) !important;
+}
+
+/* Busy slot styling */
+.busy-slot {
+  background-color: rgba(220, 53, 69, 0.2) !important;
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+
 

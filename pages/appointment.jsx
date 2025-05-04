@@ -1,3 +1,4 @@
+// pages/appointment.jsx
 import React, { useEffect, useState, useRef } from "react";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
@@ -8,37 +9,32 @@ import dayjs from "dayjs";
 import UseAuthProvider from "../store/authProvider";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import Loader from "../components/loader";
 
 export default function AppointmentPage() {
   const calendarRef = useRef(null);
   const { user } = UseAuthProvider();
-  const [lawyerEmail, setLawyerEmail] = useState("default-lawyer@justiceconnect.com"); // Default lawyer
-  const [busySlots, setBusySlots] = useState([]); // Initialize with empty array
+  const [assignedLawyer, setAssignedLawyer] = useState(null);
+  const [availableSlots, setAvailableSlots] = useState([]);
+  const [busySlots, setBusySlots] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [viewDates, setViewDates] = useState({
     start: dayjs().startOf("week").toISOString(),
     end: dayjs().endOf("week").toISOString(),
   });
-  const [loading, setLoading] = useState(false);
+  const [canBookAppointment, setCanBookAppointment] = useState(false);
+  const [noCases, setNoCases] = useState(false);
 
+  // Check if client has approved cases
   useEffect(() => {
     if (!user) return;
-    
-    async function fetchBusyTimes() {
-      setLoading(true);
+
+    async function checkApprovedCases() {
       try {
-        // For development, we'll use mock data since /api/freebusy is returning 404
-        // In production, uncomment and use the API call below
-        /*
-        const response = await fetch('/api/freebusy', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            email: lawyerEmail,
-            start: viewDates.start,
-            end: viewDates.end,
-          }),
+        setLoading(true);
+        
+        const response = await fetch('/api/client/approved-cases', {
+          credentials: 'include'
         });
         
         if (!response.ok) {
@@ -46,143 +42,190 @@ export default function AppointmentPage() {
         }
         
         const data = await response.json();
-        setBusySlots(data.busy || []);
-        */
         
-        // Mock data for development
-        const mockBusySlots = [
-          {
-            start: dayjs().add(1, 'day').hour(10).minute(0).second(0).toISOString(),
-            end: dayjs().add(1, 'day').hour(11).minute(30).second(0).toISOString()
-          },
-          {
-            start: dayjs().add(2, 'day').hour(14).minute(0).second(0).toISOString(),
-            end: dayjs().add(2, 'day').hour(15).minute(0).second(0).toISOString()
-          }
-        ];
+        if (data.cases && data.cases.length > 0) {
+          setCanBookAppointment(true);
+          
+          // Set assigned lawyer for appointment
+          const approvedCase = data.cases[0]; // Get first approved case
+          setAssignedLawyer({
+            id: approvedCase.lawyer.id,
+            userId: approvedCase.lawyer.userId,
+            name: approvedCase.lawyer.user.fullName,
+            email: approvedCase.lawyer.user.email
+          });
+        } else {
+          setCanBookAppointment(false);
+          setNoCases(true);
+        }
         
-        setBusySlots(mockBusySlots);
+        setLoading(false);
       } catch (error) {
-        console.error("Error fetching busy slots:", error);
-        toast.error("Failed to load lawyer's schedule");
-        setBusySlots([]); // Reset to empty array on error
-      } finally {
+        console.error("Error checking approved cases:", error);
+        toast.error("Failed to check your cases");
         setLoading(false);
       }
     }
     
-    fetchBusyTimes();
-  }, [lawyerEmail, viewDates, user]);
+    checkApprovedCases();
+  }, [user]);
 
-  const busyEvents = busySlots.map((slot) => ({
-    start: slot.start,
-    end: slot.end,
-    display: "background",
-    backgroundColor: "#ff9f89",
-  }));
+  // Fetch lawyer availability when assigned lawyer is set
+  useEffect(() => {
+    if (!assignedLawyer || !viewDates) return;
+    
+    async function fetchAvailability() {
+      try {
+        setLoading(true);
+        // Continued from previous code...
+        const response = await fetch('/api/lawyer/availability', {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            lawyerId: assignedLawyer.userId,
+            startDate: viewDates.start,
+            endDate: viewDates.end
+          })
+        });
 
-  const handleSelect = (info) => {
-    if (!user) {
-      toast.error("Please log in to book an appointment");
+        if (!response.ok) {
+          throw new Error(`API returned ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        // Separate available and busy slots
+        const available = data.availableSlots.map(slot => ({
+          start: slot.start,
+          end: slot.end,
+          display: 'background',
+          className: 'available-slot'
+        }));
+
+        const busy = data.busySlots.map(slot => ({
+          start: slot.start,
+          end: slot.end,
+          display: 'background',
+          className: 'busy-slot'
+        }));
+
+        setAvailableSlots(available);
+        setBusySlots(busy);
+        setLoading(false);
+      } catch (error) {
+        console.error("Error fetching lawyer availability:", error);
+        toast.error("Failed to fetch lawyer availability");
+        setLoading(false);
+      }
+    }
+
+    fetchAvailability();
+  }, [assignedLawyer, viewDates]);
+
+  // Handle date range change in calendar
+  const handleDateSet = (dateInfo) => {
+    setViewDates({
+      start: dayjs(dateInfo.start).toISOString(),
+      end: dayjs(dateInfo.end).toISOString()
+    });
+  };
+
+  // Handle slot selection
+  const handleSlotSelect = async (selectionInfo) => {
+    // Check if selected slot is available
+    const isAvailable = availableSlots.some(slot => 
+      dayjs(slot.start).isSame(selectionInfo.start) && 
+      dayjs(slot.end).isSame(selectionInfo.end)
+    );
+
+    if (!isAvailable) {
+      toast.error("Selected slot is not available");
       return;
     }
-    
-    const { startStr, endStr } = info;
-    if (
-      window.confirm(
-        `Book from ${dayjs(startStr).format("MMM D, HH:mm")} to ${dayjs(
-          endStr
-        ).format("HH:mm")}?`
-      )
-    ) {
-      // For development, simulate successful booking
-      toast.success("Appointment booked successfully!");
-      
-      // In production, uncomment and use the API call below
-      /*
-      fetch('/api/book', {
+
+    try {
+      const response = await fetch('/api/appointments/book', {
         method: 'POST',
+        credentials: 'include',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          clientId: user.id,
-          lawyerEmail,
-          start: startStr,
-          end: endStr,
-        }),
-      })
-        .then(response => {
-          if (!response.ok) {
-            throw new Error(`API returned ${response.status}`);
-          }
-          return response.json();
+          lawyerId: assignedLawyer.userId,
+          start: selectionInfo.start.toISOString(),
+          end: selectionInfo.end.toISOString()
         })
-        .then(() => {
-          toast.success("Appointment booked successfully!");
-          // Refresh busy slots
-          fetchBusyTimes();
-        })
-        .catch(error => {
-          console.error("Failed to book slot:", error);
-          toast.error("Failed to book appointment. Please try again.");
-        });
-      */
+      });
+
+      if (!response.ok) {
+        throw new Error(`API returned ${response.status}`);
+      }
+
+      const data = await response.json();
+      toast.success("Appointment booked successfully!");
+
+      // Refresh availability after booking
+      const currentViewDates = {
+        start: dayjs().startOf("week").toISOString(),
+        end: dayjs().endOf("week").toISOString()
+      };
+      setViewDates(currentViewDates);
+    } catch (error) {
+      console.error("Error booking appointment:", error);
+      toast.error("Failed to book appointment");
     }
   };
 
-  const handleDatesSet = (arg) => {
-    setViewDates({ start: arg.startStr, end: arg.endStr });
-  };
+  // Render loading state
+  if (loading) {
+    return <Loader />;
+  }
+
+  // Render no cases state
+  if (noCases) {
+    return (
+      <ClientLayout>
+        <div className="container mx-auto px-4 py-8 text-center">
+          <h2 className="text-2xl font-bold mb-4">No Active Cases</h2>
+          <p className="text-gray-600">
+            You do not have any approved cases to book an appointment.
+          </p>
+        </div>
+      </ClientLayout>
+    );
+  }
 
   return (
-    <ClientLayout clientId={user?.id} lawyerId={lawyerEmail}>
-      <div className="p-6">
-        <ToastContainer />
-        <h1 className="text-xl font-bold mb-4">Availability Calendar</h1>
-        <div className="mb-4">
-          <p className="text-sm text-gray-600 mb-2">
-            Select a time slot to book an appointment with our lawyer.
-            Highlighted areas are unavailable.
-          </p>
-          {loading && <p className="text-sm text-blue-500">Loading lawyer's schedule...</p>}
-        </div>
+    <ClientLayout>
+      <div className="container mx-auto px-4 py-8">
+        <h1 className="text-3xl font-bold mb-6">
+          Book Appointment with {assignedLawyer?.name}
+        </h1>
         <FullCalendar
           ref={calendarRef}
           plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
           initialView="timeGridWeek"
           headerToolbar={{
-            left: "prev,next today",
-            center: "title",
-            right: "timeGridDay,timeGridWeek,dayGridMonth",
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek,timeGridDay'
           }}
-          selectable
-          selectMirror
-          slotDuration="00:60:00"
-          slotLabelInterval="01:00:00"
-          slotMinTime="08:00:00"
-          slotMaxTime="20:00:00"
+          events={[...availableSlots, ...busySlots]}
+          dateClick={handleSlotSelect}
+          datesSet={handleDateSet}
+          selectable={true}
+          selectConstraint="available-slot"
+          selectOverlap={false}
+          slotMinTime="09:00:00"
+          slotMaxTime="17:00:00"
           allDaySlot={false}
-          aspectRatio={1.5}
-          events={busyEvents}
-          select={handleSelect}
-          dateClick={() => {}}
-          datesSet={handleDatesSet}
-          showNonCurrentDates
+          height="auto"
+          eventColor="#3788d8"
         />
-        <style jsx global>{`
-          .fc .fc-daygrid-day-frame {
-            aspect-ratio: 1 / 1;
-          }
-          .fc .fc-daygrid-day-number {
-            color: #000;
-          }
-
-          .fc .fc-timegrid-slot {
-            border-bottom: 5px;
-            height: 3.5em;
-          }
-        `}</style>
+        <ToastContainer />
       </div>
     </ClientLayout>
   );

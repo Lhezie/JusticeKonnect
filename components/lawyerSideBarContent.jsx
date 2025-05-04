@@ -4,7 +4,6 @@ import { IoSettingsOutline } from "react-icons/io5";
 import { BsPerson } from "react-icons/bs";
 import { RiLogoutCircleLine } from "react-icons/ri";
 import { VscLaw } from "react-icons/vsc";
-import { SiGotomeeting } from "react-icons/si";
 import { VscCalendar } from "react-icons/vsc";
 import { MdQueryStats, MdPendingActions } from "react-icons/md";
 import { usePathname } from "next/navigation";
@@ -27,7 +26,7 @@ export const LawyerSideBarContent = () => {
   return (
     <div className="">
       <div className="flex text-sm md:text-md lg:text-md justify-center md:flex-none md:justify-start">
-        {/* loggedin User name */}
+        {/* logged-in User name */}
         <div className="pt-3 text-gray-800 font-semibold">Hi, </div>
         <span className="px-2 font-semibold text-gray-800 pt-3 ">
           <span>{user?.fullName}</span>
@@ -49,19 +48,6 @@ export const LawyerSideBarContent = () => {
             </div>
           </div>
 
-          {/* My Cases */}
-          <div className="pt-4">
-            <div
-              onClick={() => router.push("/lawyerCases")}
-              className={`flex items-center py-2 px-2 hover:gradientButton  ${
-                pathname === "/lawyerCases" ? "gradientButton" : ""
-              }`}
-            >
-              <VscLaw size={24} />
-              <div className="pl-2">My Cases</div>
-            </div>
-          </div>
-
           {/* Pending Cases */}
           <div className="pt-4">
             <div
@@ -72,6 +58,19 @@ export const LawyerSideBarContent = () => {
             >
               <MdPendingActions size={24} />
               <div className="pl-2">Pending Cases</div>
+            </div>
+          </div>
+
+          {/* Approved Cases */}
+          <div className="pt-4">
+            <div
+              onClick={() => router.push("/approvedCases")}
+              className={`flex items-center py-2 px-2 hover:gradientButton  ${
+                pathname === "/approvedCases" ? "gradientButton" : ""
+              }`}
+            >
+              <VscLaw size={24} />
+              <div className="pl-2">Approved Cases</div>
             </div>
           </div>
 
@@ -96,7 +95,7 @@ export const LawyerSideBarContent = () => {
                 pathname === "/manageAvailability" ? "gradientButton" : ""
               }`}
             >
-              <SiGotomeeting size={24} />
+              <VscCalendar size={24} />
               <div className="pl-2">Manage Availability</div>
             </div>
           </div>
