@@ -9,14 +9,23 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@prisma/client": "^6.4.1",
+    "@fullcalendar/daygrid": "^6.1.17",
+    "@fullcalendar/interaction": "^6.1.17",
+    "@fullcalendar/react": "^6.1.17",
+    "@fullcalendar/timegrid": "^6.1.17",
+    "@prisma/client": "^6.7.0",
+    "@twilio/conversations": "^2.6.2",
     "autoprefixer": "^10.4.20",
     "axios": "^1.7.9",
     "bcrypt": "^5.1.1",
     "cookie": "^1.0.2",
     "daisyui": "^4.12.24",
+    "dayjs": "^1.11.13",
     "express": "^4.21.2",
+    "formidable": "^3.5.4",
     "formik": "^2.4.6",
+    "framer-motion": "^12.4.10",
+    "googleapis": "^148.0.0",
     "jsonwebtoken": "^9.0.2",
     "next": "^15.2.0",
     "postcss": "^8.5.1",
@@ -24,13 +33,15 @@
     "react-dom": "19.0.0",
     "react-icons": "^5.4.0",
     "react-toastify": "^11.0.3",
+    "swiper": "^11.2.5",
     "tailwindcss": "^3.4.17",
+    "twilio": "^5.5.2",
     "yup": "^1.6.1",
-    "zustand": "^5.0.3"
+    "zustand": "^5.0.4"
   },
   "devDependencies": {
     "eslint": "9.19.0",
     "eslint-config-next": "15.1.6",
-    "prisma": "^6.4.1"
+    "prisma": "^6.7.0"
   }
 }

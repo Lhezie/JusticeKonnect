@@ -9,7 +9,7 @@ body {
   padding: 0;
   margin: 0;
   font-family: 'Inter', sans-serif;
-
+ 
 }
 
 a {
@@ -33,7 +33,7 @@ a {
 } */
 @layer base {
   body {
-    @apply bg-white text-black transition-colors duration-300;
+    @apply bg-white text-black transition-colors duration-300 text-[15px] md:text-lg;
   }
 
   .logoBorder {
@@ -63,5 +63,10 @@ a {
   .gradientButton {
     @apply bg-gradient-to-r from-blue-400 via-yellow-500 to-blue-400 text-black  rounded-md transition cursor-pointer ;
   }
+  .majorButton {
+    @apply
+  }
 }
+
+
 

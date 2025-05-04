@@ -14,12 +14,111 @@ datasource db {
 }
 
 model User {
-  id            Int     @id @default(autoincrement())
-  fullName      String 
-  email         String  @unique
-  password      String @db.VarChar(255)
-  phoneNumber   String @unique
-  role           String  @default("client")
+  id                 Int           @id @default(autoincrement())
+  fullName           String
+  email              String        @unique
+  password           String        @db.VarChar(255)
+  phoneNumber        String        @unique
+  role               String        @default("client")
+  stripeCustomerId   String?       @unique
+  isVerified         Boolean       @default(false)
+  created_at         DateTime      @default(now())
+  updated_at         DateTime      @updatedAt
+  messagesSent       Message[]     @relation("UserMessagesSent")
+  messagesReceived   Message[]     @relation("UserMessagesReceived")
+  clientAppointments Appointment[] @relation("ClientAppointments")
+  lawyerAppointments Appointment[] @relation("LawyerAppointments")
+  payments           Payment[]     @relation("UserPayments")
+  blogs              Blog[]
+  lawyerProfile      Lawyer?       @relation("UserLawyerProfile")
+  clientProfile      Client?       @relation("UserClientProfile")
+}
+
+model Appointment {
+  id         Int      @id @default(autoincrement())
+  client     User     @relation("ClientAppointments", fields: [clientId], references: [id])
+  clientId   Int
+  lawyer     User     @relation("LawyerAppointments", fields: [lawyerId], references: [id])
+  lawyerId   Int
+  start      DateTime
+  end        DateTime
   created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
+}
+
+
+model Lawyer {
+  id             Int      @id @default(autoincrement())
+  userId         Int      @unique
+  professionalId String   @unique
+  licenseNumber  String   @unique
+  organization   String?
+  specialty      String?
+  bio            String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  user           User     @relation("UserLawyerProfile", fields: [userId], references: [id])
+  cases          Case[]   @relation("LawyerCases")
+}
+
+model Client {
+  id      Int     @id @default(autoincrement())
+  userId  Int     @unique
+  address String?
+  user    User    @relation("UserClientProfile", fields: [userId], references: [id])
+  cases   Case[]  @relation("ClientCases")
+}
+
+model Case {
+  id             Int      @id @default(autoincrement())
+  title          String
+  description    String
+  status         String   @default("open")
+  clientId       Int
+  lawyerId       Int?
+  issueType      String
+  address        String
+  city           String
+  zipCode        String
+  country        String
+  additionalInfo String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  client Client  @relation("ClientCases", fields: [clientId], references: [id], map: "ClientCaseRelation")
+  lawyer Lawyer? @relation("LawyerCases", fields: [lawyerId], references: [id], map: "LawyerCaseRelation")
+}
+
+
+
+
+
+model Payment {
+  id            Int      @id @default(autoincrement())
+  userId        Int
+  role          String   @default("client") // "client" or "lawyer"
+  amount        Float
+  status        String   @default("completed") // "completed", "failed"
+  transactionId String   @unique
+  createdAt     DateTime @default(now())
+  user          User     @relation("UserPayments", fields: [userId], references: [id])
+}
+
+model Message {
+  id         Int      @id @default(autoincrement())
+  senderId   Int
+  receiverId Int
+  content    String
+  createdAt  DateTime @default(now())
+  sender     User     @relation("UserMessagesSent", fields: [senderId], references: [id])
+  receiver   User     @relation("UserMessagesReceived", fields: [receiverId], references: [id])
+}
+
+model Blog {
+  id        Int      @id @default(autoincrement())
+  title     String
+  content   String
+  authorId  Int
+  createdAt DateTime @default(now())
+
+  author User @relation(fields: [authorId], references: [id])
 }

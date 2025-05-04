@@ -14,31 +14,9 @@ import "react-toastify/dist/ReactToastify.css";
 export const ClientSideBarContent = () => {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, setUser } = UseAuthProvider();
+  const { user} = UseAuthProvider();
 
-  useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const response = await axios.get("./api/auth/me", {
-          withCredentials: true, // Ensures cookies are sent
-          headers: { "Content-Type": "application/json" },
-        });
-
-        if (response.data && response.data.user) {
-          setUser(response.data.user);
-        } else {
-          toast.error("No user data found.");
-        }
-      } catch (error) {
-        console.error("Fetch User Error:", error.response?.data);
-        toast.error(
-          error.response?.data?.message || "Failed to fetch user data."
-        );
-      }
-    };
-
-    fetchUserData();
-  }, []);
+ 
 
   return (
     <div className="">
@@ -46,7 +24,7 @@ export const ClientSideBarContent = () => {
         {/* loggedin User name */}
         <div className=" pt-3  text-gray-800 font-semibold">Hi, </div>
         <span className="px-2 font-semibold text-gray-800 pt-3 ">
-          {user ? user?.fullName : ""}
+        <span>{user.fullName}</span>
         </span>
       </div>
       <div className="flex flex-col   relative ">
@@ -55,9 +33,9 @@ export const ClientSideBarContent = () => {
           {/* New Case */}
           <div className="pt-6">
             <div
-              onClick={() => router.push("/addNewCase")}
+              onClick={() => router.push("/createNewCase")}
               className={`flex items-center py-2 px-2 hover:gradientButton ${
-                pathname === "/addNewCase" ? "gradientButton" : ""
+                pathname === "/createNewCase" ? "py-2 px-2 gradientButton" : ""
               }`}
             >
               <VscLaw size={24} />
