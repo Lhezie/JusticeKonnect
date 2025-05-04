@@ -16,37 +16,9 @@ model Appointment {
   createdAt                       DateTime @default(now())
   User_Appointment_clientIdToUser User     @relation("Appointment_clientIdToUser", fields: [clientId], references: [id])
   User_Appointment_lawyerIdToUser User     @relation("Appointment_lawyerIdToUser", fields: [lawyerId], references: [id])
-  VideoReviews                    VideoReview[] @relation("AppointmentVideoReviews")
 
   @@index([clientId], map: "Appointment_clientId_fkey")
   @@index([lawyerId], map: "Appointment_lawyerId_fkey")
-}
-
-model CallSession {
-  id          Int      @id @default(autoincrement())
-  lawyerId    Int
-  clientId    Int
-  status      String   @default("ongoing") // e.g., ongoing, completed, missed
-  startTime   DateTime @default(now())
-  endTime     DateTime?
-  createdAt   DateTime @default(now())
-  
-  Lawyer      Lawyer   @relation("LawyerCallSessions", fields: [lawyerId], references: [id])
-  Client      Client   @relation("ClientCallSessions", fields: [clientId], references: [id])
-
-  @@index([lawyerId], map: "CallSession_lawyerId_fkey")
-  @@index([clientId], map: "CallSession_clientId_fkey")
-}
-
-model VideoReview {
-  id            Int      @id @default(autoincrement())
-  appointmentId Int
-  notes         String
-  createdAt     DateTime @default(now())
-
-  Appointment   Appointment @relation("AppointmentVideoReviews", fields: [appointmentId], references: [id])
-
-  @@index([appointmentId], map: "VideoReview_appointmentId_fkey")
 }
 
 model Blog {
@@ -62,20 +34,20 @@ model Blog {
 
 model Case {
   id             Int      @id @default(autoincrement())
-  title          String   // Required
-  description    String   // Required
-  status         String   @default("open") // Optional, defaults to "open"
-  clientId       Int?     // Optional
-  lawyerId       Int?     // Optional
-  issueType      String?  // Optional
-  address        String?  // Optional
-  city           String?  // Optional
-  zipCode        String?  // Optional
-  country        String?  // Optional
-  additionalInfo String?  // Optional
-  createdAt      DateTime @default(now()) // Automatically set
-  updatedAt      DateTime @default(now())
-  Client         Client?   @relation(fields: [clientId], references: [id], map: "ClientCaseRelation")
+  title          String
+  description    String
+  status         String   @default("open")
+  clientId       Int
+  lawyerId       Int?
+  issueType      String
+  address        String
+  city           String
+  zipCode        String
+  country        String
+  additionalInfo String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime
+  Client         Client   @relation(fields: [clientId], references: [id], map: "ClientCaseRelation")
   Lawyer         Lawyer?  @relation(fields: [lawyerId], references: [id], map: "LawyerCaseRelation")
 
   @@index([clientId], map: "ClientCaseRelation")
@@ -88,28 +60,20 @@ model Client {
   address String?
   Case    Case[]
   User    User    @relation(fields: [userId], references: [id])
-  
-  CallSessions   CallSession[] @relation("ClientCallSessions")
 }
 
 model Lawyer {
   id             Int      @id @default(autoincrement())
-  userId         Int?     @unique
+  userId         Int      @unique
   professionalId String   @unique
   licenseNumber  String   @unique
-  name           String
-  password       String
-  role           String
   organization   String?
   specialty      String?
   bio            String?
-  Case           Case[]
-  email          String   @unique
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
-  User           User?    @relation(fields: [userId], references: [id])
-  
-  CallSessions   CallSession[] @relation("LawyerCallSessions")
+  Case           Case[]
+  User           User     @relation(fields: [userId], references: [id])
 }
 
 model Message {
