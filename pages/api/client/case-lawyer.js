@@ -41,11 +41,14 @@ export default async function handler(req, res) {
       });
     }
 
-    // Get the most recent approved case with lawyer details
-    const approvedCase = await prisma.case.findFirst({
+    // Get the most recent active case with lawyer details
+    // Using createdAt instead of approvedAt for sorting
+    const activeCase = await prisma.case.findFirst({
       where: {
         clientId: client.id,
-        status: 'APPROVED'
+        status: {
+          in: ['SUBMITTED', 'APPROVED']
+        }
       },
       include: {
         lawyer: {
@@ -55,54 +58,123 @@ export default async function handler(req, res) {
         }
       },
       orderBy: {
-        approvedAt: 'desc'
+        createdAt: 'desc'
       }
     });
 
-    if (!approvedCase) {
-      return res.status(404).json({ 
-        success: false,
-        message: 'No approved case found' 
+    if (!activeCase) {
+      return res.status(200).json({ 
+        success: true,
+        message: 'No active case found',
+        case: null,
+        lawyer: null
       });
     }
 
-    // Get upcoming appointments with this lawyer
-    const upcomingAppointments = await prisma.appointment.findMany({
-      where: {
-        clientId: decoded.id,
-        lawyerId: approvedCase.lawyer.user.id,
-        start: {
-          gte: new Date() // Only future appointments
-        }
-      },
-      orderBy: {
-        start: 'asc'
+    // Check if a lawyer is assigned
+    if (!activeCase.lawyer) {
+      return res.status(200).json({
+        success: true,
+        message: 'Case has no assigned lawyer yet',
+        case: {
+          id: activeCase.id,
+          title: activeCase.title,
+          description: activeCase.description,
+          status: activeCase.status,
+          createdAt: activeCase.createdAt,
+          issueType: activeCase.issueType
+        },
+        lawyer: null
+      });
+    }
+
+    // Get upcoming appointments with this lawyer, using date field if available
+    // or falling back if the field isn't found
+    let upcomingAppointments = [];
+    
+    try {
+      // Check if appointment table has date field
+      const appointmentInfo = await prisma.$queryRaw`
+        SHOW COLUMNS FROM Appointment;
+      `;
+      
+      // Find date-related fields
+      const hasDateField = appointmentInfo.some(col => 
+        col.Field === 'date' || col.field === 'date'
+      );
+      
+      if (hasDateField) {
+        upcomingAppointments = await prisma.appointment.findMany({
+          where: {
+            clientId: decoded.id,
+            lawyerId: activeCase.lawyer.userId,
+            date: {
+              gte: new Date() // Only future appointments
+            }
+          },
+          select: {
+            id: true,
+            date: true,
+            status: true
+          },
+          orderBy: {
+            date: 'asc'
+          }
+        });
+      } else {
+        // Just get all appointments if we can't filter by date
+        upcomingAppointments = await prisma.appointment.findMany({
+          where: {
+            clientId: decoded.id,
+            lawyerId: activeCase.lawyer.userId
+          },
+          select: {
+            id: true,
+            created_at: true,
+            status: true
+          },
+          orderBy: {
+            created_at: 'desc'
+          },
+          take: 5 // Limit to 5 most recent
+        });
       }
+    } catch (error) {
+      console.error("Error fetching appointments:", error);
+      // Continue with empty appointments array
+    }
+
+    // Format appointments for response
+    const formattedAppointments = upcomingAppointments.map(apt => {
+      // Use whatever date field is available
+      const appointmentDate = apt.date || apt.created_at || new Date();
+      
+      return {
+        id: apt.id,
+        date: appointmentDate,
+        status: apt.status || 'SCHEDULED'
+      };
     });
 
+    // Return the case, lawyer, and appointment data
     res.status(200).json({
       success: true,
       case: {
-        id: approvedCase.id,
-        title: approvedCase.title,
-        description: approvedCase.description,
-        status: approvedCase.status,
-        approvedAt: approvedCase.approvedAt,
-        issueType: approvedCase.issueType
+        id: activeCase.id,
+        title: activeCase.title,
+        description: activeCase.description,
+        status: activeCase.status,
+        createdAt: activeCase.createdAt,
+        issueType: activeCase.issueType
       },
       lawyer: {
-        id: approvedCase.lawyer.id,
-        name: approvedCase.lawyer.user.fullName,
-        email: approvedCase.lawyer.user.email,
-        specialty: approvedCase.lawyer.specialty,
-        organization: approvedCase.lawyer.organization
+        id: activeCase.lawyer.userId,
+        name: activeCase.lawyer.user.fullName,
+        email: activeCase.lawyer.user.email,
+        specialty: activeCase.lawyer.specialty,
+        organization: activeCase.lawyer.organization
       },
-      appointments: upcomingAppointments.map(apt => ({
-        id: apt.id,
-        start: apt.start,
-        end: apt.end,
-        status: apt.status
-      }))
+      appointments: formattedAppointments
     });
   } catch (error) {
     console.error('Case and Lawyer Retrieval Error:', {

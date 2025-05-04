@@ -1,8 +1,7 @@
 // components/chatWindow.jsx
-import React, { useEffect, useState } from "react";
-import { TbX } from "react-icons/tb";
+import React, { useEffect, useState, useRef } from "react";
+import { TbX, TbSend } from "react-icons/tb";
 import { useChatStore } from "../store/chatStore";
-import { TbSend } from "react-icons/tb";
 import { chatService } from "../utils/chatService";
 
 export function ChatWindow({ clientId, lawyerId, onClose }) {
@@ -14,8 +13,46 @@ export function ChatWindow({ clientId, lawyerId, onClose }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isMockClient, setIsMockClient] = useState(false);
+  const [caseApproved, setCaseApproved] = useState(false);
+  const messagesEndRef = useRef(null);
 
+  // Scroll to bottom of chat whenever messages change
   useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [localMessages]);
+
+  // Check if there's an approved case between client and lawyer
+  useEffect(() => {
+    async function checkApprovedCase() {
+      try {
+        // Call API to check if the client has an approved case with this lawyer
+        const response = await fetch(`/api/cases/check-approval?clientId=${clientId}&lawyerId=${lawyerId}`, {
+          credentials: 'include'
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setCaseApproved(data.approved);
+        } else {
+          setCaseApproved(false);
+          setError("You can only chat with your assigned lawyer after your case has been approved.");
+        }
+      } catch (err) {
+        console.error("Error checking case approval:", err);
+        setCaseApproved(false);
+        setError("Failed to verify case status. Please try again later.");
+      }
+    }
+    
+    checkApprovedCase();
+  }, [clientId, lawyerId]);
+
+  // Initialize chat when case is approved
+  useEffect(() => {
+    if (!caseApproved) return;
+    
     let unmounted = false;
     let messageHandler = null;
     
@@ -27,8 +64,7 @@ export function ChatWindow({ clientId, lawyerId, onClose }) {
         await loadMessages({ clientId, lawyerId });
         
         // 2. Initialize Twilio client
-        const currentUserId = clientId; // The current user's ID
-        const twilioClient = await chatService.getClient(currentUserId);
+        const twilioClient = await chatService.getClient(clientId.toString());
         
         if (unmounted) return;
         
@@ -54,18 +90,8 @@ export function ChatWindow({ clientId, lawyerId, onClose }) {
           console.log("Join conversation result:", err);
         }
         
-        // 5. Load message history
-        if (!twilioClient.isMock) {
-          const messagePage = await chatConversation.getMessages();
-          setLocalMessages(messagePage.items || []);
-          
-          // 6. Set up message listener
-          messageHandler = (msg) => {
-            setLocalMessages((prev) => [...prev, msg]);
-          };
-          
-          chatConversation.on("messageAdded", messageHandler);
-        } else {
+        // 5. Set up message display
+        if (twilioClient.isMock) {
           // Using mock client, load messages from database
           setLocalMessages(
             messages.map(msg => ({
@@ -75,6 +101,30 @@ export function ChatWindow({ clientId, lawyerId, onClose }) {
               index: msg.id
             }))
           );
+        } else {
+          // Using Twilio client, load messages from Twilio
+          try {
+            const messagePage = await chatConversation.getMessages();
+            setLocalMessages(messagePage.items || []);
+            
+            // Set up message listener for real-time updates
+            messageHandler = (msg) => {
+              setLocalMessages((prev) => [...prev, msg]);
+            };
+            
+            chatConversation.on("messageAdded", messageHandler);
+          } catch (twilioErr) {
+            console.error("Error loading Twilio messages:", twilioErr);
+            // Fallback to database messages if Twilio fails
+            setLocalMessages(
+              messages.map(msg => ({
+                author: msg.senderId.toString(),
+                body: msg.content,
+                dateCreated: new Date(msg.createdAt),
+                index: msg.id
+              }))
+            );
+          }
         }
         
         setLoading(false);
@@ -87,7 +137,9 @@ export function ChatWindow({ clientId, lawyerId, onClose }) {
       }
     }
     
-    initChat();
+    if (caseApproved) {
+      initChat();
+    }
     
     return () => {
       unmounted = true;
@@ -102,14 +154,14 @@ export function ChatWindow({ clientId, lawyerId, onClose }) {
         client.shutdown();
       }
     };
-  }, [clientId, lawyerId, loadMessages, messages]);
+  }, [clientId, lawyerId, loadMessages, messages, caseApproved]);
 
   const handleSend = async () => {
-    if (!draft.trim()) return;
+    if (!draft.trim() || !caseApproved) return;
     
     try {
       // 1. Store message in database first
-      await sendMessage({
+      const sentMessage = await sendMessage({
         senderId: parseInt(clientId),
         receiverId: parseInt(lawyerId),
         content: draft.trim(),
@@ -117,14 +169,28 @@ export function ChatWindow({ clientId, lawyerId, onClose }) {
       
       // 2. Send through Twilio if available
       if (conversation && !isMockClient) {
-        await conversation.sendMessage(draft.trim());
+        try {
+          await conversation.sendMessage(draft.trim());
+          // Note: we don't need to update localMessages here
+          // because the messageAdded event handler will do that
+        } catch (twilioErr) {
+          console.error("Error sending via Twilio:", twilioErr);
+          // Add to local messages manually if Twilio fails
+          const fallbackMsg = {
+            author: clientId.toString(),
+            body: draft.trim(),
+            dateCreated: new Date(),
+            index: sentMessage.id || Date.now()
+          };
+          setLocalMessages(prev => [...prev, fallbackMsg]);
+        }
       } else {
         // Using mock client, update local state
         const mockMessage = {
           author: clientId.toString(),
           body: draft.trim(),
           dateCreated: new Date(),
-          index: Date.now()
+          index: sentMessage.id || Date.now()
         };
         
         setLocalMessages(prev => [...prev, mockMessage]);
@@ -157,7 +223,7 @@ export function ChatWindow({ clientId, lawyerId, onClose }) {
     );
   }
 
-  if (error) {
+  if (error || !caseApproved) {
     return (
       <div className="fixed bottom-4 right-4 z-50">
         <div className="bg-white w-80 h-96 rounded-lg shadow-lg flex flex-col overflow-hidden">
@@ -169,7 +235,7 @@ export function ChatWindow({ clientId, lawyerId, onClose }) {
           </div>
           <div className="flex-1 p-3 flex items-center justify-center">
             <div className="text-center">
-              <p className="text-red-500 mb-2">{error}</p>
+              <p className="text-red-500 mb-2">{error || "You can only chat with your assigned lawyer after your case has been approved."}</p>
               <button 
                 onClick={onClose}
                 className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
@@ -221,6 +287,7 @@ export function ChatWindow({ clientId, lawyerId, onClose }) {
               </div>
             ))
           )}
+          <div ref={messagesEndRef} />
         </div>
         
         <div className="p-3 bg-blue-50 flex items-center space-x-2">

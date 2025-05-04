@@ -41,44 +41,115 @@ export default async function handler(req, res) {
       });
     }
 
-    // Get upcoming appointments
-    const upcomingAppointments = await prisma.appointment.findMany({
-      where: {
-        lawyerId: decoded.id,
-        start: {
-          gte: new Date() // Only future appointments
-        }
-      },
-      include: {
-        client: {
-          include: {
-            user: {
+    // Determine the structure of the Appointment table
+    let upcomingAppointments = [];
+    let hasStart = false;
+    let hasDate = false;
+    
+    try {
+      // First check the table structure
+      const appointmentInfo = await prisma.$queryRaw`
+        SHOW COLUMNS FROM Appointment;
+      `;
+      
+      // Check for appropriate date fields
+      hasStart = appointmentInfo.some(col => 
+        col.Field === 'start' || col.field === 'start'
+      );
+      
+      hasDate = appointmentInfo.some(col => 
+        col.Field === 'date' || col.field === 'date'
+      );
+      
+      // Get appointments based on available fields
+      if (hasStart) {
+        upcomingAppointments = await prisma.appointment.findMany({
+          where: {
+            lawyerId: decoded.id,
+            start: {
+              gte: new Date() // Only future appointments
+            }
+          },
+          select: {
+            id: true,
+            start: true,
+            end: true,
+            status: true,
+            client: {
               select: {
                 fullName: true,
                 email: true,
                 phoneNumber: true
               }
             }
+          },
+          orderBy: {
+            start: 'asc'
           }
-        }
-      },
-      orderBy: {
-        start: 'asc'
+        });
+      } else if (hasDate) {
+        upcomingAppointments = await prisma.appointment.findMany({
+          where: {
+            lawyerId: decoded.id,
+            date: {
+              gte: new Date() // Only future appointments
+            }
+          },
+          select: {
+            id: true,
+            date: true,
+            status: true,
+            client: {
+              select: {
+                fullName: true,
+                email: true,
+                phoneNumber: true
+              }
+            }
+          },
+          orderBy: {
+            date: 'asc'
+          }
+        });
       }
-    });
+    } catch (error) {
+      console.error("Error fetching appointments:", error);
+      // Continue with empty array if there's an error
+      upcomingAppointments = [];
+    }
 
     // Transform appointments for response
-    const formattedAppointments = upcomingAppointments.map(apt => ({
-      id: apt.id,
-      start: apt.start,
-      end: apt.end,
-      status: apt.status,
-      client: {
-        name: apt.client.user.fullName,
-        email: apt.client.user.email,
-        phone: apt.client.user.phoneNumber
+    const formattedAppointments = upcomingAppointments.map(apt => {
+      if (hasStart) {
+        return {
+          id: apt.id,
+          start: apt.start,
+          end: apt.end,
+          status: apt.status,
+          client: {
+            name: apt.client.fullName,
+            email: apt.client.email,
+            phone: apt.client.phoneNumber
+          }
+        };
+      } else if (hasDate) {
+        // Create start and end times from date (assuming 1 hour appointments)
+        const startTime = new Date(apt.date);
+        const endTime = new Date(startTime.getTime() + 60 * 60 * 1000); // 1 hour later
+        
+        return {
+          id: apt.id,
+          start: startTime,
+          end: endTime,
+          status: apt.status,
+          client: {
+            name: apt.client.fullName,
+            email: apt.client.email,
+            phone: apt.client.phoneNumber
+          }
+        };
       }
-    }));
+    });
 
     // Get pending cases
     const pendingCases = await prisma.case.findMany({

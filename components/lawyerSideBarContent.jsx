@@ -9,7 +9,8 @@ import { MdQueryStats, MdPendingActions } from "react-icons/md";
 import { usePathname } from "next/navigation";
 import { useRouter } from "next/navigation";
 import UseAuthProvider from "../store/authProvider";
-import { toast } from "react-toastify";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 export const LawyerSideBarContent = () => {
   const pathname = usePathname();
@@ -21,37 +22,44 @@ export const LawyerSideBarContent = () => {
     {
       icon: MdQueryStats,
       label: "Dashboard",
-      path: "/lawyerDashboard"
+      path: "/lawyerDashboard",
+      activeCondition: pathname === "/lawyerDashboard"
     },
     {
       icon: MdPendingActions,
       label: "Pending Cases",
-      path: "/pendingCases"
+      path: "/pendingCases",
+      activeCondition: pathname === "/pendingCases"
     },
     {
       icon: VscLaw,
       label: "Approved Cases",
-      path: "/approvedCases" 
-    },
-    {
-      icon: VscCalendar,
-      label: "Appointments",
-      path: "/lawyerAppointments"
+      path: "/approvedCases",
+      activeCondition: pathname === "/approvedCases"
     },
     {
       icon: VscCalendar,
       label: "Manage Availability",
-      path: "/manageAvailability"
+      path: "/manageAvailability",
+      activeCondition: pathname === "/manageAvailability"
+    },
+    {
+      icon: VscCalendar,
+      label: "Appointments",
+      path: "/lawyerAppointments",
+      activeCondition: pathname === "/lawyerAppointments"
     },
     {
       icon: BsPerson,
       label: "Profile",
-      path: "/lawyerProfile"
+      path: "/lawyerProfile",
+      activeCondition: pathname === "/lawyerProfile"
     },
     {
       icon: IoSettingsOutline,
       label: "Settings",
-      path: "/settings"
+      path: "/settings",
+      activeCondition: pathname === "/settings"
     }
   ];
 
@@ -59,10 +67,6 @@ export const LawyerSideBarContent = () => {
     logout();
     toast.success("Logged out successfully");
     router.push("/");
-  };
-
-  const handleNavigation = (path) => {
-    router.push(path);
   };
 
   return (
@@ -73,14 +77,14 @@ export const LawyerSideBarContent = () => {
           <span>{user?.fullName || "Lawyer"}</span>
         </span>
       </div>
-      <div className="flex flex-col relative">
+      <div className="flex flex-col relative h-full">
         <div className="flex-grow">
           {navigationItems.map((item, index) => (
             <div key={index} className="pt-4">
               <div
-                onClick={() => handleNavigation(item.path)}
+                onClick={() => router.push(item.path)}
                 className={`flex items-center py-2 px-2 hover:gradientButton cursor-pointer ${
-                  pathname === item.path ? "gradientButton" : ""
+                  item.activeCondition ? "gradientButton" : ""
                 }`}
               >
                 <item.icon size={24} />
@@ -91,7 +95,7 @@ export const LawyerSideBarContent = () => {
         </div>
         
         {/* Logout - Positioned at the Bottom */}
-        <div className="pt-20">
+        <div className="mt-12 absolute bottom-4 left-0">
           <div
             onClick={handleLogout}
             className="flex items-center py-2 px-2 w-fit hover:gradientButton cursor-pointer"
@@ -101,6 +105,7 @@ export const LawyerSideBarContent = () => {
           </div>
         </div>
       </div>
+      <ToastContainer />
     </div>
   );
 };

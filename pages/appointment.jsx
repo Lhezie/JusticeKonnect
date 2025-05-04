@@ -15,7 +15,6 @@ export default function AppointmentPage() {
   const calendarRef = useRef(null);
   const { user } = UseAuthProvider();
   const [assignedLawyer, setAssignedLawyer] = useState(null);
-  const [approvedCase, setApprovedCase] = useState(null);
   const [availableSlots, setAvailableSlots] = useState([]);
   const [busySlots, setBusySlots] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -25,25 +24,20 @@ export default function AppointmentPage() {
   });
   const [canBookAppointment, setCanBookAppointment] = useState(false);
   const [noCases, setNoCases] = useState(false);
+  const [selectedSlot, setSelectedSlot] = useState(null);
 
-  // Check if client has approved cases
+  // Check if client has approved cases and retrieve assigned lawyer
   useEffect(() => {
     if (!user) return;
 
-    async function checkApprovedCase() {
+    async function checkApprovedCases() {
       try {
         setLoading(true);
         
+        // Fetch case and lawyer info
         const response = await fetch('/api/client/case-lawyer', {
           credentials: 'include'
         });
-        
-        if (response.status === 404) {
-          setCanBookAppointment(false);
-          setNoCases(true);
-          setLoading(false);
-          return;
-        }
         
         if (!response.ok) {
           throw new Error(`API returned ${response.status}`);
@@ -52,14 +46,17 @@ export default function AppointmentPage() {
         const data = await response.json();
         
         if (data.success && data.case && data.lawyer) {
-          setApprovedCase(data.case);
+          // Only allow booking if the case is approved
+          setCanBookAppointment(data.case.status === 'APPROVED');
+          
+          // Set assigned lawyer for appointment
           setAssignedLawyer({
             id: data.lawyer.id,
-            userId: data.lawyer.id, // This should be the user ID associated with the lawyer
+            userId: data.lawyer.id,
             name: data.lawyer.name,
-            email: data.lawyer.email
+            email: data.lawyer.email,
+            specialty: data.lawyer.specialty
           });
-          setCanBookAppointment(true);
         } else {
           setCanBookAppointment(false);
           setNoCases(true);
@@ -69,73 +66,75 @@ export default function AppointmentPage() {
       } catch (error) {
         console.error("Error checking approved cases:", error);
         toast.error("Failed to check your cases");
+        setCanBookAppointment(false);
+        setNoCases(true);
         setLoading(false);
       }
     }
     
-    checkApprovedCase();
+    checkApprovedCases();
   }, [user]);
 
-  // Fetch lawyer availability when assigned lawyer is set
+  // Fetch lawyer availability when assigned lawyer is set and view dates change
   useEffect(() => {
-    if (!assignedLawyer || !viewDates) return;
+    if (!assignedLawyer || !viewDates || !canBookAppointment) return;
     
     async function fetchAvailability() {
       try {
         setLoading(true);
         
-        const response = await fetch('/api/lawyer/available-slots', {
+        // Fetch lawyer's availability slots
+        const availResponse = await fetch('/api/lawyer/available-slots', {
           method: 'POST',
-          credentials: 'include',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
           },
           body: JSON.stringify({
             lawyerId: assignedLawyer.userId,
             start: viewDates.start,
             end: viewDates.end
-          })
+          }),
+          credentials: 'include'
         });
 
-        if (!response.ok) {
-          throw new Error(`API returned ${response.status}`);
+        if (!availResponse.ok) {
+          throw new Error(`Failed to fetch availability: ${availResponse.status}`);
         }
 
-        const data = await response.json();
-
-        // Fetch busy slots
+        const availData = await availResponse.json();
+        setAvailableSlots(availData.available || []);
+        
+        // Fetch lawyer's busy slots (existing appointments)
         const busyResponse = await fetch('/api/lawyer/busy-slots', {
           method: 'POST',
-          credentials: 'include',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
           },
           body: JSON.stringify({
             lawyerId: assignedLawyer.userId,
             start: viewDates.start,
             end: viewDates.end
-          })
+          }),
+          credentials: 'include'
         });
 
         if (!busyResponse.ok) {
-          throw new Error(`API returned ${busyResponse.status}`);
+          throw new Error(`Failed to fetch busy slots: ${busyResponse.status}`);
         }
 
         const busyData = await busyResponse.json();
-
-        // Update state with available and busy slots
-        setAvailableSlots(data.available || []);
         setBusySlots(busyData.busy || []);
+        
         setLoading(false);
       } catch (error) {
-        console.error("Error fetching lawyer availability:", error);
-        toast.error("Failed to fetch lawyer availability");
+        console.error("Error fetching availability:", error);
+        toast.error("Failed to fetch lawyer's availability");
         setLoading(false);
       }
     }
 
     fetchAvailability();
-  }, [assignedLawyer, viewDates]);
+  }, [assignedLawyer, viewDates, canBookAppointment]);
 
   // Handle date range change in calendar
   const handleDateSet = (dateInfo) => {
@@ -145,27 +144,56 @@ export default function AppointmentPage() {
     });
   };
 
+  // Check if a slot is available (within an available slot and not overlapping a busy slot)
+  const isSlotAvailable = (start, end) => {
+    // Check if it's within any available slot
+    const withinAvailable = availableSlots.some(slot => {
+      if (slot.daysOfWeek) {
+        // For recurring availability
+        const day = dayjs(start).day();
+        return slot.daysOfWeek.includes(day) &&
+          dayjs(start).format('HH:mm') >= slot.startTime &&
+          dayjs(end).format('HH:mm') <= slot.endTime;
+      } else {
+        // For specific date availability
+        return dayjs(start).isAfter(dayjs(slot.start)) &&
+          dayjs(end).isBefore(dayjs(slot.end));
+      }
+    });
+
+    // Check if it overlaps with any busy slot
+    const overlapsWithBusy = busySlots.some(slot => {
+      return !(dayjs(end).isSameOrBefore(dayjs(slot.start)) ||
+        dayjs(start).isSameOrAfter(dayjs(slot.end)));
+    });
+
+    return withinAvailable && !overlapsWithBusy;
+  };
+
   // Handle slot selection
-  const handleSlotSelect = async (selectionInfo) => {
+  const handleSlotSelect = (selectionInfo) => {
     if (!canBookAppointment) {
-      toast.warning("You need an approved case to book an appointment");
+      toast.error("You don't have any approved cases to book an appointment");
       return;
     }
 
-    // Check if selected slot is available (green background)
-    const isAvailable = isTimeSlotAvailable(selectionInfo.start, selectionInfo.end);
+    const isAvailable = isSlotAvailable(selectionInfo.start, selectionInfo.end);
 
     if (!isAvailable) {
-      toast.warning("Selected time slot is not available");
+      toast.error("Selected slot is not available");
       return;
     }
 
-    // Confirmation dialog
-    const confirmed = window.confirm(
-      `Book appointment with ${assignedLawyer.name} on ${dayjs(selectionInfo.start).format('MMMM D, YYYY')} from ${dayjs(selectionInfo.start).format('h:mm A')} to ${dayjs(selectionInfo.end).format('h:mm A')}?`
-    );
+    // Store the selected slot for confirmation
+    setSelectedSlot({
+      start: selectionInfo.startStr,
+      end: selectionInfo.endStr
+    });
+  };
 
-    if (!confirmed) return;
+  // Handle appointment booking confirmation
+  const handleConfirmBooking = async () => {
+    if (!selectedSlot) return;
 
     try {
       const response = await fetch('/api/appointments/book', {
@@ -176,63 +204,38 @@ export default function AppointmentPage() {
         },
         body: JSON.stringify({
           lawyerId: assignedLawyer.userId,
-          caseId: approvedCase.id,
-          start: selectionInfo.start.toISOString(),
-          end: selectionInfo.end.toISOString()
+          start: selectedSlot.start,
+          end: selectedSlot.end
         })
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `API returned ${response.status}`);
+        throw new Error(`Failed to book appointment: ${response.status}`);
       }
 
       const data = await response.json();
-      toast.success("Appointment booked successfully!");
-
-      // Refresh availability after booking
-      setViewDates({
-        start: dayjs().startOf("week").toISOString(),
-        end: dayjs().endOf("week").toISOString()
-      });
+      
+      if (data.success) {
+        toast.success("Appointment booked successfully!");
+        setSelectedSlot(null);
+        
+        // Refresh availability
+        setViewDates({
+          start: dayjs().startOf("week").toISOString(),
+          end: dayjs().endOf("week").toISOString(),
+        });
+      } else {
+        toast.error(data.error || "Failed to book appointment");
+      }
     } catch (error) {
       console.error("Error booking appointment:", error);
-      toast.error(error.message || "Failed to book appointment");
+      toast.error("Failed to book appointment. Please try again.");
     }
   };
 
-  // Helper function to check if time slot is within available slots
-  const isTimeSlotAvailable = (start, end) => {
-    const startTime = dayjs(start);
-    const endTime = dayjs(end);
-    
-    // Check if slot falls within any available slot
-    return availableSlots.some(slot => {
-      if (slot.daysOfWeek) {
-        // Recurring slot
-        const day = startTime.day(); // 0-6, 0 is Sunday
-        const isCorrectDay = slot.daysOfWeek.includes(day);
-        
-        if (!isCorrectDay) return false;
-        
-        const slotStart = slot.startTime || '09:00'; // Default start time
-        const slotEnd = slot.endTime || '17:00'; // Default end time
-        
-        const [startHour, startMinute] = slotStart.split(':').map(Number);
-        const [endHour, endMinute] = slotEnd.split(':').map(Number);
-        
-        const availStart = startTime.hour(startHour).minute(startMinute);
-        const availEnd = startTime.hour(endHour).minute(endMinute);
-        
-        return startTime.isAfter(availStart) && endTime.isBefore(availEnd);
-      } else {
-        // One-time slot
-        const slotStart = dayjs(slot.start);
-        const slotEnd = dayjs(slot.end);
-        
-        return startTime.isAfter(slotStart) && endTime.isBefore(slotEnd);
-      }
-    });
+  // Cancel booking flow
+  const handleCancelBooking = () => {
+    setSelectedSlot(null);
   };
 
   // Render loading state
@@ -241,13 +244,13 @@ export default function AppointmentPage() {
   }
 
   // Render no cases state
-  if (noCases) {
+  if (noCases || !canBookAppointment) {
     return (
       <ClientLayout>
         <div className="container mx-auto px-4 py-8 text-center">
           <h2 className="text-2xl font-bold mb-4">No Approved Cases</h2>
           <p className="text-gray-600 mb-6">
-            You do not have any approved cases to book an appointment. Please submit a case first and wait for lawyer approval.
+            You need an approved case to book an appointment with a lawyer.
           </p>
           <button
             onClick={() => window.location.href = '/createNewCase'}
@@ -263,20 +266,50 @@ export default function AppointmentPage() {
   return (
     <ClientLayout>
       <div className="container mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold mb-6">
-          Book Appointment with {assignedLawyer?.name}
-        </h1>
-        <div className="bg-white p-4 rounded-lg shadow mb-6">
-          <h2 className="text-lg font-semibold mb-2">Case Details</h2>
-          <p><span className="font-medium">Title:</span> {approvedCase?.title}</p>
-          <p><span className="font-medium">Type:</span> {approvedCase?.issueType}</p>
-          <p><span className="font-medium">Status:</span> {approvedCase?.status}</p>
-          <p className="text-sm text-gray-500 mt-2">
-            Please select an available time slot (green areas) to book your appointment.
+        <ToastContainer />
+        
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold mb-2">
+            Book Appointment with {assignedLawyer?.name}
+          </h1>
+          <p className="text-gray-600">
+            Select an available time slot on the calendar below.
           </p>
+          {assignedLawyer?.specialty && (
+            <p className="text-sm text-gray-500">Specialty: {assignedLawyer.specialty}</p>
+          )}
         </div>
         
-        <div className="bg-white p-4 rounded-lg shadow">
+        {/* Booking confirmation modal */}
+        {selectedSlot && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+            <div className="bg-white rounded-lg p-6 max-w-md">
+              <h2 className="text-xl font-bold mb-4">Confirm Appointment</h2>
+              <p className="mb-2">
+                <span className="font-medium">Date:</span> {dayjs(selectedSlot.start).format('dddd, MMMM D, YYYY')}
+              </p>
+              <p className="mb-4">
+                <span className="font-medium">Time:</span> {dayjs(selectedSlot.start).format('h:mm A')} - {dayjs(selectedSlot.end).format('h:mm A')}
+              </p>
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={handleCancelBooking}
+                  className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-100"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmBooking}
+                  className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                >
+                  Confirm Booking
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        <div className="bg-white rounded-lg shadow p-4">
           <FullCalendar
             ref={calendarRef}
             plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
@@ -287,36 +320,50 @@ export default function AppointmentPage() {
               right: 'dayGridMonth,timeGridWeek,timeGridDay'
             }}
             events={[...availableSlots, ...busySlots]}
-            dateClick={() => {}} // Disable single-click selection
             selectable={true}
             select={handleSlotSelect}
             datesSet={handleDateSet}
+            selectConstraint="available"
             selectOverlap={false}
             slotMinTime="09:00:00"
             slotMaxTime="17:00:00"
             allDaySlot={false}
             height="auto"
-            eventColor="#3788d8"
+            selectMirror={true}
             eventContent={(eventInfo) => {
-              // For busy slots, show info about appointment
-              if (eventInfo.event.backgroundColor === '#ff9f89' || eventInfo.event.backgroundColor === '#ff6b6b') {
+              // For available slots
+              if (eventInfo.event.display === 'background' && eventInfo.event.backgroundColor === '#a0e4b0') {
                 return (
-                  <div className="p-1">
-                    <p className="text-xs">Busy</p>
+                  <div className="text-xs text-green-800 p-1">
+                    Available
                   </div>
                 );
               }
               
-              // For available slots, show "Available"
-              return (
-                <div className="p-1">
-                  <p className="text-xs">Available</p>
-                </div>
-              );
+              // For busy slots (appointments)
+              if (eventInfo.event.backgroundColor === '#ff9f89') {
+                return (
+                  <div className="text-xs text-red-800 p-1">
+                    Unavailable
+                  </div>
+                );
+              }
+              
+              return null;
             }}
           />
+          
+          <div className="mt-4 flex space-x-4">
+            <div className="flex items-center">
+              <div className="w-4 h-4 bg-green-200 mr-2"></div>
+              <span className="text-sm">Available Time</span>
+            </div>
+            <div className="flex items-center">
+              <div className="w-4 h-4 bg-red-200 mr-2"></div>
+              <span className="text-sm">Unavailable Time</span>
+            </div>
+          </div>
         </div>
-        <ToastContainer />
       </div>
     </ClientLayout>
   );

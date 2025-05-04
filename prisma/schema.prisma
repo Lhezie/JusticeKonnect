@@ -40,9 +40,9 @@ model Appointment {
   clientId   Int
   lawyer     User     @relation("LawyerAppointments", fields: [lawyerId], references: [id])
   lawyerId   Int
-  start      DateTime
-  end        DateTime
-  created_at DateTime @default(now())
+  date       DateTime  // Use this instead of start/end if that's your schema
+  status     String   @default("scheduled")
+  createdAt  DateTime @default(now())
 }
 
 model Lawyer {

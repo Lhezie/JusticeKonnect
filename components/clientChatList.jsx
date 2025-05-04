@@ -1,9 +1,8 @@
-// components/clientChatList.jsx
+// components/ClientChatList.jsx
 import React, { useEffect, useState } from 'react';
 import UseAuthProvider from "../store/authProvider";
-import Loader from "../components/loader";
 
-export default function ClientChatList({ onSelectClient }) {
+export function ClientChatList({ onSelectClient }) {
   const { user } = UseAuthProvider();
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -34,6 +33,25 @@ export default function ClientChatList({ onSelectClient }) {
         console.error('Error fetching clients:', error);
         setError('Failed to load clients. Please try again.');
         setLoading(false);
+        
+        // Use mock data in development for easier testing
+        if (process.env.NODE_ENV === 'development') {
+          setClients([
+            {
+              id: 101,
+              fullName: "John Smith",
+              email: "john@example.com",
+              cases: 2
+            },
+            {
+              id: 102,
+              fullName: "Jane Doe",
+              email: "jane@example.com",
+              cases: 1
+            }
+          ]);
+          setLoading(false);
+        }
       }
     }
     

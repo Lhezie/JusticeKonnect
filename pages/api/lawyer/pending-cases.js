@@ -7,7 +7,6 @@ const prisma = global.prisma || new PrismaClient();
 if (process.env.NODE_ENV === 'development') global.prisma = prisma;
 
 export default async function handler(req, res) {
-  // Comprehensive logging for debugging
   console.log('Pending Cases API Request:', {
     method: req.method,
     cookies: req.headers.cookie ? 'Cookies Present' : 'No Cookies'
@@ -27,7 +26,7 @@ export default async function handler(req, res) {
     console.log('No cookies found in request');
     return res.status(401).json({ 
       success: false,
-      error: 'Unauthorized - No cookies' 
+      message: 'Unauthorized - No cookies found' 
     });
   }
   
@@ -38,7 +37,7 @@ export default async function handler(req, res) {
     console.log('No refresh token found in cookies');
     return res.status(401).json({ 
       success: false,
-      error: 'Unauthorized - No token' 
+      message: 'Unauthorized - No token found' 
     });
   }
   
@@ -47,49 +46,56 @@ export default async function handler(req, res) {
     let decoded;
     try {
       decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+      console.log('Decoded Token User ID:', decoded.id);
     } catch (tokenError) {
       console.error('Token verification failed:', tokenError);
       return res.status(401).json({ 
         success: false,
-        error: 'Invalid token',
-        details: tokenError.message 
+        message: 'Invalid authentication token',
+        error: tokenError.message 
       });
     }
-
-    // Log decoded token info (be careful not to log sensitive data)
-    console.log('Decoded Token User ID:', decoded.id);
     
-    // Find user with lawyer profile
+    // First find the user
     const user = await prisma.user.findUnique({
       where: { 
-        id: decoded.id,
-        role: 'lawyer' // Ensure it's a lawyer
-      },
-      include: {
-        lawyerProfile: true
+        id: decoded.id
       }
     });
     
     if (!user) {
-      console.log('No lawyer user found with ID:', decoded.id);
+      console.log('No user found with ID:', decoded.id);
       return res.status(404).json({ 
         success: false,
-        error: 'Lawyer profile not found' 
+        message: 'User not found' 
       });
     }
-
-    if (!user.lawyerProfile) {
-      console.log('User exists but has no lawyer profile');
+    
+    // Check if this user is a lawyer
+    if (user.role !== 'lawyer') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied - User is not a lawyer'
+      });
+    }
+    
+    // Find lawyer profile for this user
+    const lawyer = await prisma.lawyer.findUnique({
+      where: { userId: user.id }
+    });
+    
+    if (!lawyer) {
+      console.log('No lawyer profile found for user ID:', decoded.id);
       return res.status(404).json({ 
         success: false,
-        error: 'Lawyer profile not completely set up' 
+        message: 'Lawyer profile not found' 
       });
     }
     
     // Get pending cases assigned to this lawyer
     const pendingCases = await prisma.case.findMany({
       where: {
-        lawyerId: user.lawyerProfile.id,
+        lawyerId: lawyer.id,
         status: 'SUBMITTED'
       },
       include: {
@@ -112,23 +118,27 @@ export default async function handler(req, res) {
     
     console.log('Pending Cases Found:', pendingCases.length);
     
+    // Format the response
+    const formattedCases = pendingCases.map(caseItem => ({
+      id: caseItem.id,
+      title: caseItem.title,
+      description: caseItem.description,
+      issueType: caseItem.issueType,
+      createdAt: caseItem.createdAt,
+      client: {
+        name: caseItem.client.user.fullName,
+        email: caseItem.client.user.email,
+        phone: caseItem.client.user.phoneNumber
+      }
+    }));
+    
+    // Return successful response
     res.status(200).json({ 
       success: true,
-      cases: pendingCases.map(caseItem => ({
-        id: caseItem.id,
-        title: caseItem.title,
-        description: caseItem.description,
-        issueType: caseItem.issueType,
-        createdAt: caseItem.createdAt,
-        client: {
-          name: caseItem.client.user.fullName,
-          email: caseItem.client.user.email,
-          phone: caseItem.client.user.phoneNumber
-        }
-      }))
+      cases: formattedCases
     });
   } catch (error) {
-    console.error('Comprehensive Error in Pending Cases API:', {
+    console.error('Error in Pending Cases API:', {
       message: error.message,
       stack: error.stack,
       name: error.name
@@ -136,8 +146,8 @@ export default async function handler(req, res) {
     
     res.status(500).json({
       success: false,
-      error: 'Internal Server Error',
-      details: process.env.NODE_ENV === 'development' ? error.message : 'Unexpected error occurred'
+      message: 'Internal Server Error',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Unexpected error occurred'
     });
   }
 }
