@@ -4,7 +4,7 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import UseAuthProvider from "../store/authProvider";
 import { Formateddate } from "../utils/date";
-import { LawyerLayout } from "../components/lawyerlayout";
+import { LawyerLayout } from "../components/lawyerLayout";
 import { useRouter } from "next/navigation";
 import Loader from "../components/loader";
 
@@ -18,77 +18,69 @@ const LawyerDashboard = () => {
     completedCases: 0,
     upcomingAppointments: 0
   });
-  const [recentAppointments, setRecentAppointments] = useState([]);
+  const [upcomingAppointments, setUpcomingAppointments] = useState([]);
   const [pendingCases, setPendingCases] = useState([]);
 
   useEffect(() => {
     if (!user) {
+      router.push("/lawyerLoginPage");
       return;
     }
 
-    // Simulate API calls to fetch data
-    setTimeout(() => {
-      // This would be real API calls in production
-      setStats({
-        totalCases: 15,
-        activeCases: 8,
-        completedCases: 7,
-        upcomingAppointments: 3
-      });
+    async function fetchDashboardData() {
+      try {
+        setLoading(true);
+        
+        // Fetch upcoming appointments and pending cases from the API
+        const response = await fetch('/api/lawyer/upcoming-appointments', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include'
+        });
 
-      // Mock upcoming appointments
-      setRecentAppointments([
-        { 
-          id: 1, 
-          clientName: "John Doe", 
-          date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-          time: "10:00 AM",
-          type: "Initial Consultation"
-        },
-        { 
-          id: 2, 
-          clientName: "Jane Smith", 
-          date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
-          time: "2:30 PM",
-          type: "Case Review"
-        },
-        { 
-          id: 3, 
-          clientName: "Bob Johnson", 
-          date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
-          time: "9:00 AM",
-          type: "Document Signing"
+        if (!response.ok) {
+          throw new Error(`API returned ${response.status}`);
         }
-      ]);
 
-      // Mock pending cases awaiting lawyer assignment
-      setPendingCases([
-        {
-          id: 101,
-          title: "Property Dispute",
-          client: "Alex Williams",
-          submittedDate: "2025-04-30",
-          status: "pending"
-        },
-        {
-          id: 102,
-          title: "Contract Breach",
-          client: "Sarah Miller",
-          submittedDate: "2025-05-01",
-          status: "pending"
-        },
-        {
-          id: 103,
-          title: "Child Custody",
-          client: "Michael Brown",
-          submittedDate: "2025-05-02",
-          status: "pending"
-        }
-      ]);
+        const data = await response.json();
+        
+        // Set appointments
+        setUpcomingAppointments(data.upcomingAppointments || []);
+        
+        // Set pending cases
+        setPendingCases(data.pendingCases || []);
+        
+        // Calculate stats
+        setStats({
+          totalCases: (data.totalCases || 0),
+          activeCases: (data.activeCases || 0),
+          completedCases: (data.completedCases || 0),
+          upcomingAppointments: (data.upcomingAppointments || []).length
+        });
+        
+        setLoading(false);
+      } catch (error) {
+        console.error("Error fetching dashboard data:", error);
+        toast.error("Failed to load dashboard data");
+        
+        // Set empty data in case of error
+        setUpcomingAppointments([]);
+        setPendingCases([]);
+        setStats({
+          totalCases: 0,
+          activeCases: 0,
+          completedCases: 0,
+          upcomingAppointments: 0
+        });
+        
+        setLoading(false);
+      }
+    }
 
-      setLoading(false);
-    }, 1000);
-  }, [user]);
+    fetchDashboardData();
+  }, [user, router]);
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -99,17 +91,83 @@ const LawyerDashboard = () => {
     });
   };
 
+  const formatTime = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const handleApproveCase = async (caseId) => {
+    try {
+      const response = await fetch('/api/lawyer/approve-case', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ caseId }),
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error(`API returned ${response.status}`);
+      }
+
+      toast.success("Case approved successfully");
+      
+      // Remove the approved case from pending cases
+      setPendingCases(pendingCases.filter(c => c.id !== caseId));
+      
+      // Update stats
+      setStats(prev => ({
+        ...prev,
+        activeCases: prev.activeCases + 1
+      }));
+      
+    } catch (error) {
+      console.error("Error approving case:", error);
+      toast.error("Failed to approve case");
+    }
+  };
+
+  const handleRejectCase = async (caseId) => {
+    try {
+      const response = await fetch('/api/lawyer/reject-case', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ caseId }),
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error(`API returned ${response.status}`);
+      }
+
+      toast.success("Case rejected");
+      
+      // Remove the rejected case from pending cases
+      setPendingCases(pendingCases.filter(c => c.id !== caseId));
+      
+    } catch (error) {
+      console.error("Error rejecting case:", error);
+      toast.error("Failed to reject case");
+    }
+  };
+
   if (loading) return <Loader />;
 
   if (!user) {
-    // Redirect to login if no user
-    router.push("/lawyerLoginPage");
+    // Redirect to login if no user - handled in useEffect
     return <Loader />;
   }
 
   return (
     <LawyerLayout lawyerId={user.id}>
       <div className="text-sm md:text-md lg:text-md">
+        <ToastContainer />
         <div className="flex justify-between items-center">
           <h1 className="text-xl font-bold">Lawyer Dashboard</h1>
           <div className="text-end">
@@ -118,7 +176,7 @@ const LawyerDashboard = () => {
         </div>
 
         {/* Stats Overview */}
-        <div className="grid grid-cols-4 gap-4 mt-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
           <div className="bg-blue-400 text-white rounded-xl shadow p-4">
             <h3 className="font-semibold">Total Cases</h3>
             <p className="text-2xl font-bold mt-2">{stats.totalCases}</p>
@@ -141,17 +199,17 @@ const LawyerDashboard = () => {
           {/* Upcoming Appointments */}
           <div className="bg-white rounded-xl shadow p-4">
             <h2 className="text-lg font-semibold mb-4">Upcoming Appointments</h2>
-            {recentAppointments.length > 0 ? (
+            {upcomingAppointments.length > 0 ? (
               <div className="space-y-3">
-                {recentAppointments.map(appointment => (
+                {upcomingAppointments.map(appointment => (
                   <div key={appointment.id} className="border-b pb-2 last:border-0 flex justify-between">
                     <div>
-                      <p className="font-medium">{appointment.clientName}</p>
-                      <p className="text-sm text-gray-600">{appointment.type}</p>
+                      <p className="font-medium">{appointment.client.name}</p>
+                      <p className="text-sm text-gray-600">{appointment.client.email}</p>
                     </div>
                     <div className="text-right">
-                      <p className="font-medium">{formatDate(appointment.date)}</p>
-                      <p className="text-sm text-gray-600">{appointment.time}</p>
+                      <p className="font-medium">{formatDate(appointment.start)}</p>
+                      <p className="text-sm text-gray-600">{formatTime(appointment.start)} - {formatTime(appointment.end)}</p>
                     </div>
                   </div>
                 ))}
@@ -179,8 +237,22 @@ const LawyerDashboard = () => {
                       <p className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">Pending</p>
                     </div>
                     <div className="flex justify-between mt-1">
-                      <p className="text-sm text-gray-600">Client: {pendingCase.client}</p>
-                      <p className="text-sm text-gray-600">Submitted: {pendingCase.submittedDate}</p>
+                      <p className="text-sm text-gray-600">Client: {pendingCase.client.name}</p>
+                      <p className="text-sm text-gray-600">Submitted: {formatDate(pendingCase.submittedAt)}</p>
+                    </div>
+                    <div className="flex justify-end space-x-2 mt-2">
+                      <button 
+                        onClick={() => handleRejectCase(pendingCase.id)}
+                        className="px-2 py-1 bg-red-100 text-red-600 rounded text-sm hover:bg-red-200 transition"
+                      >
+                        Reject
+                      </button>
+                      <button 
+                        onClick={() => handleApproveCase(pendingCase.id)}
+                        className="px-2 py-1 bg-green-100 text-green-600 rounded text-sm hover:bg-green-200 transition"
+                      >
+                        Approve
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -211,7 +283,7 @@ const LawyerDashboard = () => {
               onClick={() => router.push('/pendingCases')}
               className="bg-blue-400 text-white p-3 rounded-xl font-semibold shadow hover:bg-blue-500 transition"
             >
-              Accept New Case
+              Review Pending Cases
             </button>
             <button 
               onClick={() => router.push('/lawyerAppointments')}

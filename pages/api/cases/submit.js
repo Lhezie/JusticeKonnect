@@ -52,7 +52,16 @@ export default async function handler(req, res) {
 
     // Find the client profile
     const client = await prisma.client.findUnique({
-      where: { userId: decoded.id }
+      where: { userId: decoded.id },
+      include: {
+        cases: {
+          where: {
+            status: {
+              in: ['SUBMITTED', 'PENDING', 'APPROVED']
+            }
+          }
+        }
+      }
     });
 
     if (!client) {
@@ -63,25 +72,14 @@ export default async function handler(req, res) {
     }
 
     // Check if client already has a pending or approved case
-    const existingCase = await prisma.case.findFirst({
-      where: {
-        clientId: client.id,
-        OR: [
-          { status: 'SUBMITTED' },
-          { status: 'PENDING' },
-          { status: 'APPROVED' }
-        ]
-      }
-    });
-
-    if (existingCase) {
+    if (client.cases && client.cases.length > 0) {
       return res.status(400).json({
         success: false,
         message: 'You already have an active case in progress'
       });
     }
 
-    // Find all active lawyers
+    // Find all verified lawyers for assignment
     const lawyers = await prisma.lawyer.findMany({
       where: {
         user: {
@@ -95,8 +93,8 @@ export default async function handler(req, res) {
         }
       },
       orderBy: [
-        { _count: { cases: 'asc' } }, // Prioritize lawyers with fewer cases
-        { id: 'asc' }
+        { _count: { cases: 'asc' } }, // Prioritize lawyers with fewer cases for load balancing
+        { id: 'asc' } // Secondary sort for consistent results
       ]
     });
 
@@ -107,8 +105,33 @@ export default async function handler(req, res) {
       });
     }
 
-    // Select the first lawyer (round-robin with load balancing)
-    const selectedLawyer = lawyers[0];
+    // Find the last assigned case to implement round-robin
+    const lastAssignedCase = await prisma.case.findFirst({
+      where: {
+        lawyerId: { not: null }
+      },
+      orderBy: {
+        createdAt: 'desc'
+      },
+      select: {
+        lawyerId: true
+      }
+    });
+
+    // Determine which lawyer to assign
+    let selectedLawyer;
+    
+    if (!lastAssignedCase) {
+      // If no previous case, assign to the first lawyer
+      selectedLawyer = lawyers[0];
+    } else {
+      // Find the index of the last assigned lawyer
+      const lastLawyerIndex = lawyers.findIndex(lawyer => lawyer.id === lastAssignedCase.lawyerId);
+      
+      // Get the next lawyer in the rotation (or wrap around to the beginning)
+      const nextLawyerIndex = (lastLawyerIndex + 1) % lawyers.length;
+      selectedLawyer = lawyers[nextLawyerIndex];
+    }
 
     // Create case with assigned lawyer
     const newCase = await prisma.case.create({
@@ -123,21 +146,29 @@ export default async function handler(req, res) {
         additionalInfo,
         status: 'SUBMITTED',
         clientId: client.id,
-        lawyerId: selectedLawyer.id
+        lawyerId: selectedLawyer.id,
+        createdAt: new Date(),
+        updatedAt: new Date()
       },
       include: {
         lawyer: {
           include: {
-            user: true
+            user: {
+              select: {
+                id: true,
+                fullName: true,
+                email: true
+              }
+            }
           }
         }
       }
     });
 
-    // Optional: Send notification to lawyer 
-    // You could implement email or in-app notification logic here
+    // Log assignment for monitoring/debugging
     console.log(`Case ${newCase.id} assigned to lawyer ${selectedLawyer.id}`);
 
+    // Return success response with case details
     res.status(201).json({
       success: true,
       message: 'Case submitted and assigned successfully',
@@ -147,7 +178,8 @@ export default async function handler(req, res) {
         status: newCase.status,
         assignedLawyer: {
           id: selectedLawyer.id,
-          name: selectedLawyer.user.fullName
+          name: newCase.lawyer.user.fullName,
+          email: newCase.lawyer.user.email
         }
       }
     });
@@ -174,7 +206,7 @@ export default async function handler(req, res) {
   }
 }
 
-// Disable body parsing to handle raw body for verification
+// Enable parsing for the request body
 export const config = {
   api: {
     bodyParser: true,
