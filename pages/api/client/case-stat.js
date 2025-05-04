@@ -8,104 +8,52 @@ if (process.env.NODE_ENV === 'development') global.prisma = prisma;
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
-    return res.status(405).json({ 
-      success: false, 
-      message: 'Method Not Allowed' 
-    });
-  }
-
-  // Check for authentication cookies
-  const cookies = req.headers.cookie ? cookie.parse(req.headers.cookie) : {};
-  const refreshToken = cookies.refreshToken;
-
-  if (!refreshToken) {
-    return res.status(401).json({ 
-      success: false, 
-      message: 'Unauthorized - No token found' 
-    });
+    return res.status(405).json({ success: false, message: 'Method not allowed' });
   }
 
   try {
-    // Verify the refresh token
-    const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+    // Get auth token from cookies
+    const cookies = cookie.parse(req.headers.cookie || '');
+    const token = cookies.token;
 
-    // Find the client profile
-    const client = await prisma.client.findUnique({
-      where: { userId: decoded.id }
-    });
-
-    if (!client) {
-      return res.status(404).json({
-        success: false,
-        message: 'Client profile not found'
-      });
+    if (!token) {
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
     }
 
-    // Count cases by status
-    const caseCounts = {
-      submittedCount: 0,
-      pendingCount: 0,
-      approvedCount: 0,
-      rejectedCount: 0,
-      totalCount: 0
-    };
+    // Verify token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const clientId = decoded.id;
 
-    // Get all cases for this client
-    const cases = await prisma.case.findMany({
+    // Query database for case counts by status
+    const submittedCount = await prisma.case.count({
       where: {
-        clientId: client.id
-      }
+        clientId: clientId,
+      },
     });
 
-    // Count by status
-    cases.forEach(caseItem => {
-      caseCounts.totalCount++;
-      
-      switch(caseItem.status) {
-        case 'SUBMITTED':
-          caseCounts.submittedCount++;
-          break;
-        case 'PENDING':
-          caseCounts.pendingCount++;
-          break;
-        case 'APPROVED':
-          caseCounts.approvedCount++;
-          break;
-        case 'REJECTED':
-          caseCounts.rejectedCount++;
-          break;
-      }
+    const pendingCount = await prisma.case.count({
+      where: {
+        clientId: clientId,
+        status: 'PENDING',
+      },
     });
 
-    // Return the stats
-    res.status(200).json({
+    const approvedCount = await prisma.case.count({
+      where: {
+        clientId: clientId,
+        status: 'APPROVED',
+      },
+    });
+
+    // Return the counts
+    return res.status(200).json({
       success: true,
-      ...caseCounts
+      submittedCount,
+      pendingCount,
+      approvedCount,
     });
   } catch (error) {
-    console.error('Case Stats Error:', {
-      message: error.message,
-      stack: error.stack
-    });
-
-    // Handle different types of errors
-    if (error.name === 'JsonWebTokenError') {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid authentication token'
-      });
-    }
-
-    res.status(500).json({
-      success: false,
-      message: 'Failed to retrieve case statistics',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal Server Error'
-    });
+    console.error('Error fetching case stats:', error);
+    return res.status(500).json({ success: false, message: 'Failed to fetch case statistics' });
   }
 }
-
-export const config = {
-  api: {
-    bodyParser: true,
-  },
-};

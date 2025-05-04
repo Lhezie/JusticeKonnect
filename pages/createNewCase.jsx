@@ -5,16 +5,29 @@ import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import {ClientLayout} from "../components/clientLayout";
+import { ClientLayout } from "../components/clientLayout";
 import { IoIosArrowDropleft } from "react-icons/io";
 import { Button, SelectInput } from "../components/clientComponent";
 import useIssueTypeProvider from "../store/useIssueTypeProvider";
+import { useRouter } from "next/navigation";
+import UseAuthProvider from "../store/authProvider";
+import { useEffect } from "react";
 
 export default function CreateNewCase() {
+  const router = useRouter();
   const { issueTypes = [] } = useIssueTypeProvider();
+  const { user, loading } = UseAuthProvider();
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!loading && !user) {
+      toast.error("Please log in to submit a case");
+      router.push("/clientLoginPage");
+    }
+  }, [user, loading, router]);
 
   const validationSchema = Yup.object().shape({
-    issueType: Yup.string().required("Issue Type is required"), // ← singular
+    issueType: Yup.string().required("Issue Type is required"),
     address: Yup.string().required("Address is required"),
     city: Yup.string().required("City is required"),
     zipCode: Yup.string().required("Zip Code is required"),
@@ -52,6 +65,14 @@ export default function CreateNewCase() {
       return;
     }
 
+    // Check if user is authenticated
+    if (!user) {
+      toast.error("You must be logged in to submit a case.");
+      router.push("/clientLoginPage");
+      setSubmitting(false);
+      return;
+    }
+
     console.log("🚀 submitting values:", values);
 
     const formData = new FormData();
@@ -64,11 +85,23 @@ export default function CreateNewCase() {
     formData.append("additionalInfo", additionalInfo); // this is the File
 
     try {
+      // Check for token (debug only)
+      const cookies = document.cookie;
+      console.log("Cookies available:", cookies.includes("token"));
+      
       const res = await fetch("/api/upload", {
         method: "POST",
         body: formData,
-        credentials: "include",
+        credentials: "include", // Important: include credentials
       });
+      
+      if (res.status === 401) {
+        toast.error("Authentication failed. Please log in again.");
+        router.push("/clientLoginPage");
+        setSubmitting(false);
+        return;
+      }
+      
       const data = await res.json();
 
       if (!res.ok) throw new Error(data.message || "Upload failed");
@@ -76,13 +109,25 @@ export default function CreateNewCase() {
       toast.success("Submitted successfully!");
       resetForm();
       document.getElementById("fileInput").value = "";
+      
+      // Redirect to dashboard after successful submission
+      router.push('/clientDashboard?refresh=true');
     } catch (error) {
       console.error("Submission error:", error);
-      toast.error(error.message);
+      toast.error(error.message || "An error occurred during submission");
     } finally {
       setSubmitting(false);
     }
   };
+
+  // If still loading auth state, show loading indicator
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -197,7 +242,6 @@ export default function CreateNewCase() {
                 </div>
 
                 {/* File Upload */}
-                {/* File Upload */}
                 <div>
                   <input
                     id="fileInput"
@@ -216,9 +260,10 @@ export default function CreateNewCase() {
                   />
                 </div>
 
-                {/* 🚀 Here’s the native submit button: 🚀 */}
-                <button className="bg-blue-400 text-white p-3 rounded-xl font-semibold w-full"
-                  type="submit" // ← must be `type="submit"`
+                {/* Submit Button */}
+                <button
+                  className="bg-blue-400 text-white p-3 rounded-xl font-semibold w-full"
+                  type="submit"
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? "Submitting…" : "Submit Case"}
