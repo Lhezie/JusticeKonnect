@@ -1,28 +1,45 @@
-import { google } from 'googleapis';
-import { PrismaClient } from '@prisma/client';
+// pages/api/freebusy.js
+import dayjs from 'dayjs';
 
-const prisma3 = new PrismaClient();
+export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
 
-export default async function handlerFreeBusy(req, res) {
   const { email, start, end } = req.body;
-  const user = await prisma3.user.findUnique({ where: { email } });
-  if (!user) return res.status(404).json({ error: 'User not found' });
 
-  const oauth2Client3 = new google.auth.OAuth2();
-  oauth2Client3.setCredentials({
-    access_token: user.googleAccessToken,
-    refresh_token: user.googleRefreshToken,
-  });
+  if (!email || !start || !end) {
+    return res.status(400).json({ error: 'Missing required parameters' });
+  }
 
-  const calendar = google.calendar({ version: 'v3', auth: oauth2Client3 });
-  const fb = await calendar.freebusy.query({
-    requestBody: {
-      timeMin: start,
-      timeMax: end,
-      items: [{ id: 'primary' }],
-    },
-  });
+  // In production, you would:
+  // 1. Look up the lawyer by email
+  // 2. Query their calendar for busy times
+  // 3. Return actual busy slots
 
-  const busy = fb.data.calendars.primary.busy;
-  res.json({ busy });
+  // For now, generate random busy slots for development
+  const startDate = dayjs(start);
+  const endDate = dayjs(end);
+  const busySlots = [];
+
+  // Create some random busy slots within the date range
+  let currentDay = startDate.startOf('day');
+  while (currentDay.isBefore(endDate)) {
+    // 30% chance of having a busy slot on this day
+    if (Math.random() < 0.3) {
+      // Random hour between 9am and 4pm
+      const hour = Math.floor(Math.random() * 8) + 9;
+      
+      busySlots.push({
+        start: currentDay.hour(hour).minute(0).second(0).toISOString(),
+        end: currentDay.hour(hour + 1).minute(30).second(0).toISOString()
+      });
+    }
+    
+    // Move to next day
+    currentDay = currentDay.add(1, 'day');
+  }
+
+  // Return the busy slots
+  res.status(200).json({ busy: busySlots });
 }

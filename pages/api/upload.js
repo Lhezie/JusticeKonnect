@@ -13,7 +13,7 @@ export const config = {
 const prisma = global.prisma || new PrismaClient();
 if (process.env.NODE_ENV === "development") global.prisma = prisma;
 
-// helper to extract a single string from formidable’s fields
+// helper to extract a single string from formidable's fields
 const getSingle = (val) => Array.isArray(val) ? val[0] : val;
 
 export default async function handler(req, res) {
@@ -31,14 +31,27 @@ export default async function handler(req, res) {
   let decoded;
   try {
     decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
-  } catch {
+  } catch (error) {
+    console.error("JWT verification error:", error);
     return res.status(403).json({ message: "Forbidden - Invalid token" });
   }
 
   // find the client profile
-  const client = await prisma.client.findUnique({ where: { userId: decoded.id } });
+  const user = await prisma.user.findUnique({ 
+    where: { id: decoded.id },
+    include: { clientProfile: true }
+  });
+  
+  if (!user) {
+    return res.status(404).json({ message: "User not found" });
+  }
+  
+  // Create client profile if it doesn't exist
+  let client = user.clientProfile;
   if (!client) {
-    return res.status(404).json({ message: "Client profile not found" });
+    client = await prisma.client.create({
+      data: { userId: user.id }
+    });
   }
 
   // ─── 2) PARSE MULTIPART FORM ─────────────────────────────────────────────────
@@ -86,6 +99,8 @@ export default async function handler(req, res) {
     const zipCode        = getSingle(fields.zipCode);
     const country        = getSingle(fields.country);
     const caseDescription= getSingle(fields.caseDescription);
+
+    console.log("Creating case with client ID:", client.id);
 
     const newCase = await prisma.case.create({
       data: {

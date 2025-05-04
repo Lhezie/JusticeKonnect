@@ -45,7 +45,6 @@ model Appointment {
   created_at DateTime @default(now())
 }
 
-
 model Lawyer {
   id             Int      @id @default(autoincrement())
   userId         Int      @unique
@@ -58,6 +57,19 @@ model Lawyer {
   updatedAt      DateTime @updatedAt
   user           User     @relation("UserLawyerProfile", fields: [userId], references: [id])
   cases          Case[]   @relation("LawyerCases")
+  availabilities Availability[]
+}
+
+model Availability {
+  id            Int      @id @default(autoincrement())
+  lawyer        Lawyer   @relation(fields: [lawyerId], references: [id])
+  lawyerId      Int
+  startTime     DateTime
+  endTime       DateTime
+  isRecurring   Boolean  @default(false)
+  recurringDays String?  // JSON string of day numbers (0=Sunday, etc)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 model Client {
@@ -87,10 +99,6 @@ model Case {
   client Client  @relation("ClientCases", fields: [clientId], references: [id], map: "ClientCaseRelation")
   lawyer Lawyer? @relation("LawyerCases", fields: [lawyerId], references: [id], map: "LawyerCaseRelation")
 }
-
-
-
-
 
 model Payment {
   id            Int      @id @default(autoincrement())
