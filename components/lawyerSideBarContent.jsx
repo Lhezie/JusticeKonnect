@@ -37,12 +37,12 @@ export const LawyerSideBarContent = () => {
       path: "/approvedCases",
       activeCondition: pathname === "/approvedCases"
     },
-    {
-      icon: VscCalendar,
-      label: "Appointments",
-      path: "/lawyerAppointments",
-      activeCondition: pathname === "/lawyerAppointments"
-    },
+    // {
+    //   icon: VscCalendar,
+    //   label: "Appointments",
+    //   path: "/appointment",
+    //   activeCondition: pathname === "/appointment"
+    // },
     {
       icon: VscCalendar,
       label: "Manage Availability",
@@ -58,8 +58,8 @@ export const LawyerSideBarContent = () => {
     {
       icon: IoSettingsOutline,
       label: "Settings",
-      path: "/lawyerSettings",
-      activeCondition: pathname === "/lawyerSettings"
+      path: "/settings",
+      activeCondition: pathname === "/settings"
     }
   ];
 
@@ -95,7 +95,7 @@ export const LawyerSideBarContent = () => {
         </div>
         
         {/* Logout - Positioned at the Bottom */}
-        <div className="absolute bottom-0 left-0 w-full">
+        <div className="absolute bottom-[-110px] left-0 w-full">
           <div
             onClick={handleLogout}
             className="flex items-center py-2 px-2 w-fit hover:gradientButton cursor-pointer"
