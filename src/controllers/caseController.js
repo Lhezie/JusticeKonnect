@@ -4,13 +4,14 @@ const prisma = new PrismaClient();
 export const createCase = async (req, res) => {
   try {
     const lawyerId = req.user.id;
-    const { title, description, issueType } = req.body; 
+    const { title, description,clientId, issueType } = req.body; 
 
     const newCase = await prisma.case.create({
       data: {
         title,
         description,
         lawyerId,
+        clientId,
         issueType 
       },
     });

@@ -16,9 +16,10 @@ model Appointment {
   createdAt                       DateTime @default(now())
   User_Appointment_clientIdToUser User     @relation("Appointment_clientIdToUser", fields: [clientId], references: [id])
   User_Appointment_lawyerIdToUser User     @relation("Appointment_lawyerIdToUser", fields: [lawyerId], references: [id])
+  Lawyer                          Lawyer   @relation(fields: [lawyerId], references: [id])
 
   @@index([clientId], map: "Appointment_clientId_fkey")
-  @@index([lawyerId], map: "Appointment_lawyerId_fkey")
+  @@index([lawyerId], map: "Appointment_lawyerId_fkey_uniques")
 }
 
 model Blog {
@@ -37,7 +38,7 @@ model Case {
   title          String
   description    String
   status         String   @default("open")
-  clientId       Int
+  clientId       Int?
   lawyerId       Int?
   issueType      String
   address        String
@@ -64,16 +65,20 @@ model Client {
 
 model Lawyer {
   id             Int      @id @default(autoincrement())
-  userId         Int      @unique
+  userId         Int?     @unique
   professionalId String   @unique
   licenseNumber  String   @unique
+  name           String
+  email          String   @unique
+  password       String
+  role           String
   organization   String?
   specialty      String?
   bio            String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   Case           Case[]
-  User           User     @relation(fields: [userId], references: [id])
+  Appointment    Appointment[]
 }
 
 model Message {
@@ -117,7 +122,7 @@ model User {
   Appointment_Appointment_lawyerIdToUser Appointment[] @relation("Appointment_lawyerIdToUser")
   Blog                                   Blog[]
   Client                                 Client?
-  Lawyer                                 Lawyer?
+  Lawyer                                 Lawyer?      @relation
   Message_Message_receiverIdToUser       Message[]     @relation("Message_receiverIdToUser")
   Message_Message_senderIdToUser         Message[]     @relation("Message_senderIdToUser")
   Payment                                Payment[]
