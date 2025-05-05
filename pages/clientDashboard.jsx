@@ -118,7 +118,9 @@ const ClientDashboard = () => {
 
   // Function to book an appointment
   const bookAppointment = async (availabilityId) => {
-    if (!recentCase || !availabilityId) return;
+    if (!recentCase || !availabilityId) {
+      return;
+    }
     
     try {
       const response = await fetch('/api/client/book-appointment', {
@@ -168,7 +170,9 @@ const ClientDashboard = () => {
     });
   };
 
-  if (loading) return <Loader />;
+  if (loading) {
+    return <Loader />;
+  }
 
   if (!user) {
     // Redirect to login if no user - handled in useEffect
@@ -260,16 +264,15 @@ const ClientDashboard = () => {
                             : 'bg-blue-50 text-blue-700'}`}
                       >
                         <span>{formatDateTime(slot.startTime)}</span>
-                        {!slot.isBooked ? (
-                          <button
-                            onClick={() => bookAppointment(slot.id)}
-                            className="bg-blue-500 text-white px-2 py-1 rounded text-xs hover:bg-blue-600"
-                          >
-                            Book
-                          </button>
-                        ) : (
-                          <span className="text-xs font-medium">Booked</span>
-                        )}
+                        {slot.isBooked ? 
+                                                   <span className="text-xs font-medium">Booked</span>
+                                                  : 
+                                                   <button
+                                                     onClick={() => bookAppointment(slot.id)}
+                                                     className="bg-blue-500 text-white px-2 py-1 rounded text-xs hover:bg-blue-600"
+                                                   >
+                                                     Book
+                                                   </button>}
                       </div>
                     ))}
                   </div>

@@ -19,7 +19,9 @@ function MyApp({ Component, pageProps }) {
     init();
   }, [refreshAccessToken]);
 
-  if (loading) return <Loader />;
+  if (loading) {
+    return <Loader />;
+  }
 
   return <Component {...pageProps} />;
 }

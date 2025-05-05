@@ -1,12 +1,15 @@
 // pages/api/auth/me.js
 import { PrismaClient } from "@prisma/client";
+import authenticateToken from "../middleware/authMiddleWare";
 import * as cookie from "cookie";
 import jwt from "jsonwebtoken";
 
 const prisma = global.prisma || new PrismaClient();
-if (process.env.NODE_ENV === "development") global.prisma = prisma;
-
-export default async function handler(req, res) {
+if (process.env.NODE_ENV === "development") {
+  global.prisma = prisma;
+}
+export default async function handler(req, res)   {
+  authenticateToken(req, res, async () => {
   if (req.method !== "GET") {
     return res.status(405).json({ message: "Method Not Allowed" });
   }
@@ -34,4 +37,6 @@ export default async function handler(req, res) {
   }
 
   res.status(200).json({ user });
+});
+
 }

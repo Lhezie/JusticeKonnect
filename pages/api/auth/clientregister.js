@@ -1,15 +1,19 @@
-// pages/api/auth/clientregister.js
 import { PrismaClient } from "@prisma/client";
+import dotenv from 'dotenv';
+dotenv.config();
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import * as cookie from "cookie";
 
 const prisma = global.prisma || new PrismaClient();
-if (process.env.NODE_ENV === "development") global.prisma = prisma;
+if (process.env.NODE_ENV === "development") {
+  global.prisma = prisma;
+}
+console.log("DATABASE_URL:", process.env.DATABASE_URL);
 
 function generateAccessToken(user) {
   return jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET, {
-    expiresIn: "15m",
+    expiresIn: "45m",
   });
 }
 
@@ -18,7 +22,6 @@ function generateRefreshToken(user) {
     expiresIn: "7d",
   });
 }
-
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ message: "Method Not Allowed" });

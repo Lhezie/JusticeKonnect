@@ -41,7 +41,7 @@ export default function ClientRegisterPage() {
   const handleRegister = async (values, { setSubmitting, resetForm }) => {
     try {
       await axios.post(
-        "/api/auth/clientregister",   // absolute API path
+        "/api/auth/clientregister.js",   // absolute API path
         {
           fullName: values.fullName,
           email: values.email,

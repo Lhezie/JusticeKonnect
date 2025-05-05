@@ -160,7 +160,9 @@ const LawyerDashboard = () => {
   };
 
   const handleApproveCase = async (caseId) => {
-    if (!caseId) return;
+    if (!caseId) {
+      return;
+    }
     
     try {
       const response = await fetch('/api/lawyer/approve-case', {
@@ -200,7 +202,9 @@ const LawyerDashboard = () => {
   };
 
   const handleRejectCase = async (caseId) => {
-    if (!caseId) return;
+    if (!caseId) {
+      return;
+    }
     
     try {
       const response = await fetch('/api/lawyer/reject-case', {
@@ -234,10 +238,14 @@ const LawyerDashboard = () => {
   };
 
   // Show loader while fetching data
-  if (loading) return <Loader />;
+  if (loading) {
+    return <Loader />;
+  }
 
   // Redirect to login if no user - handled in useEffect
-  if (!user) return <Loader />;
+  if (!user) {
+    return <Loader />;
+  }
 
   // Show error state
   if (error) {

@@ -4,7 +4,7 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
-import { LawyerLayout } from "../components/lawyerlayout";
+import { LawyerLayout } from "../components/LawyerLayout";
 import UseAuthProvider from "../store/authProvider";
 import dayjs from "dayjs";
 import { ToastContainer, toast } from "react-toastify";
@@ -23,7 +23,9 @@ export default function ManageAvailability() {
   });
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      return;
+    }
 
     async function fetchAvailability() {
       setLoading(true);
@@ -187,13 +189,19 @@ export default function ManageAvailability() {
   // Set up recurring availability
   const handleSetRecurring = () => {
     const daysOfWeek = window.prompt('Enter days of week (0=Sunday, 1=Monday, ...6=Saturday) separated by commas:', '1,2,3,4,5');
-    if (!daysOfWeek) return;
+    if (!daysOfWeek) {
+      return;
+    }
     
     const startTime = window.prompt('Enter start time (HH:MM)', '09:00');
-    if (!startTime) return;
+    if (!startTime) {
+      return;
+    }
     
     const endTime = window.prompt('Enter end time (HH:MM)', '17:00');
-    if (!endTime) return;
+    if (!endTime) {
+      return;
+    }
     
     try {
       const daysArray = daysOfWeek.split(',').map(d => parseInt(d.trim(), 10));
