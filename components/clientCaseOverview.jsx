@@ -4,7 +4,7 @@ export const ClientCaseOverview = () => {
   return (
     <div>
       {" "}
-      Hellow
+      Hello
     </div>
   );
 }; 
