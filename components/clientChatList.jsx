@@ -9,7 +9,9 @@ export function ClientChatList({ onSelectClient }) {
   const [error, setError] = useState(null);
   
   useEffect(() => {
-    if (!user || user.role !== 'lawyer') return;
+    if (!user || user.role !== 'lawyer') {
+      return;
+    }
     
     async function fetchClients() {
       try {

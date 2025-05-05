@@ -1,38 +1,12 @@
 {
-    "files.exclude": {
-        "**/.git": true,
-        "**/.svn": true,
-        "**/.hg": true,
-        "**/CVS": true,
-        "**/.DS_Store": true,
-        "**/Thumbs.db": true,
-        "**/.retool_types/**": true,
-        "**/*tsconfig.json": true,
-        ".cache": true,
-        "retool.config.json": true
-    },
     "cSpell.words": [
-        "clientlogin",
-        "clientrefresh",
-        "clientregister",
-        "daygrid",
-        "dotenv",
-        "eslintcache",
-        "Formateddate",
-        "fullcalendar",
-        "GOCSPX",
-        "jscoverage",
-        "jspm",
-        "justiceconnect",
-        "Microbundle",
-        "Nuxt",
+        "Cpath",
+        "Csvg",
+        "Gotomeeting",
+        "lenzi",
+        "loggedin",
         "Onee",
-        "pids",
-        "stylelintcache",
-        "timegrid",
-        "Toastify",
-        "vercel",
-        "vuepress",
-        "wscript"
+        "texl",
+        "Toastify"
     ]
 }
