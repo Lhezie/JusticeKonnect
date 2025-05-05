@@ -164,7 +164,7 @@ export default function LawyerAppointments() {
           <div className="space-y-8">
             {/* Today's Appointments */}
             <div>
-              <h2 className="text-lg font-semibold mb-3">Today's Appointments</h2>
+            <h2 className="text-lg font-semibold mb-3">Today&apos;s Appointments</h2>
               {appointments.today.length > 0 ? (
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {appointments.today.map(appointment => renderAppointmentCard(appointment))}

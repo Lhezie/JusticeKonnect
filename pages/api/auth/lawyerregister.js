@@ -5,7 +5,9 @@ import jwt from "jsonwebtoken";
 import * as cookie from "cookie";
 
 const prisma = global.prisma || new PrismaClient();
-if (process.env.NODE_ENV === "development") global.prisma = prisma;
+if (process.env.NODE_ENV === "development") {
+  global.prisma = prisma;
+}
 
 function generateAccessToken(user) {
   return jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET, {

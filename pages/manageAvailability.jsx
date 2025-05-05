@@ -4,7 +4,7 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
-import { LawyerLayout } from "../components/LawyerLayout";
+import { LawyerLayout } from "../components/lawyerLayout";
 import UseAuthProvider from "../store/authProvider";
 import dayjs from "dayjs";
 import { ToastContainer, toast } from "react-toastify";
@@ -269,10 +269,10 @@ export default function ManageAvailability() {
             <div className="mb-6 bg-white p-4 rounded-lg shadow">
               <h2 className="font-semibold mb-2">Instructions:</h2>
               <ul className="list-disc pl-5 space-y-1 text-sm">
-                <li>Click and drag on the calendar to mark time slots when you're available for appointments</li>
-                <li>Click on a green slot to remove availability</li>
-                <li>Busy slots (shown in red) are already booked appointments and cannot be changed</li>
-                <li>Use the "Set Recurring Availability" button to quickly set up your regular schedule</li>
+              <li>Click and drag on the calendar to mark time slots when you&apos;re available for appointments</li>
+              <li>Click on a green slot to remove availability</li>
+              <li>Busy slots (shown in red) are already booked appointments and cannot be changed</li>
+              <li>Use the &quot;Set Recurring Availability&quot; button to quickly set up your regular schedule</li>
               </ul>
             </div>
             

@@ -4,7 +4,9 @@ import jwt from "jsonwebtoken";
 import cookie from "cookie";
 
 const prisma = global.prisma || new PrismaClient();
-if (process.env.NODE_ENV === "development") global.prisma = prisma;
+if (process.env.NODE_ENV === "development") {
+  global.prisma = prisma;
+}
 
 export default async function handler(req, res) {
   // Only allow POST requests

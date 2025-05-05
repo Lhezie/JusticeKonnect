@@ -1,6 +1,5 @@
 // pages/lawyerLoginPage.jsx
 "use client";
-
 import { useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Image from "next/image";
@@ -163,7 +162,7 @@ export default function LawyerLoginPage() {
           </Formik>
           
           <div className="text-center mt-4">
-            Don't have an account? 
+            <p>Don&apos;have an account?</p>
             <span 
               className="text-blue-400 ml-1 cursor-pointer"
               onClick={() => router.push("/lawyerRegisterPage")}

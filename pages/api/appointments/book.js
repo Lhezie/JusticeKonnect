@@ -5,7 +5,9 @@ import * as cookie from 'cookie';
 import nodemailer from 'nodemailer';
 
 const prisma = global.prisma || new PrismaClient();
-if (process.env.NODE_ENV === 'development') global.prisma = prisma;
+if (process.env.NODE_ENV === 'development') {
+  global.prisma = prisma;
+}
 
 // Configure email transporter 
 const transporter = nodemailer.createTransport({

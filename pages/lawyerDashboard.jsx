@@ -4,7 +4,7 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import UseAuthProvider from "../store/authProvider";
 import { Formateddate } from "../utils/date";
-import { LawyerLayout } from "../components/LawyerLayout"; // Fixed import with correct casing
+import { LawyerLayout } from "../components/lawyerLayout"; // Fixed import with correct casing
 import { useRouter } from "next/navigation";
 import Loader from "../components/loader";
 

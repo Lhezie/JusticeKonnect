@@ -1,6 +1,5 @@
 // pages/clientRegisterPage.jsx
 "use client"; // Ensure client-side rendering
-
 import { useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Image from "next/image";
