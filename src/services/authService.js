@@ -11,6 +11,7 @@ export const signUp = async (userData) => {
     name, 
     email, 
     password, 
+    userId,
     professionalId, 
     organization, 
     licenseNumber, 
@@ -34,6 +35,7 @@ export const signUp = async (userData) => {
       data: {
         name,
         email,
+        userId,
         password: hashedPassword,
         professionalId: professionalId,
         organization,
@@ -129,6 +131,7 @@ export const verifyToken = async (token) => {
         email: true,
         name: true,
         role: true,
+        userId: true,
         organization: true,
         specialty: true,
         professionalID: true
@@ -166,6 +169,7 @@ export const updateProfile = async (userId, updateData) => {
         email: true,
         name: true,
         role: true,
+        userId: true,
         organization: true,
         specialty: true,
         professionalID: true,
