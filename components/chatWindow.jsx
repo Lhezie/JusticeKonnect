@@ -51,7 +51,9 @@ export function ChatWindow({ clientId, lawyerId, onClose }) {
 
   // Initialize chat when case is approved
   useEffect(() => {
-    if (!caseApproved) return;
+    if (!caseApproved) {
+      return;
+    }
     
     let unmounted = false;
     let messageHandler = null;
@@ -66,7 +68,9 @@ export function ChatWindow({ clientId, lawyerId, onClose }) {
         // 2. Initialize Twilio client
         const twilioClient = await chatService.getClient(clientId.toString());
         
-        if (unmounted) return;
+        if (unmounted) {
+          return;
+        }
         
         setClient(twilioClient);
         setIsMockClient(twilioClient.isMock);
@@ -78,7 +82,9 @@ export function ChatWindow({ clientId, lawyerId, onClose }) {
           lawyerId
         );
         
-        if (unmounted) return;
+        if (unmounted) {
+          return;
+        }
         
         setConversation(chatConversation);
         
@@ -157,7 +163,9 @@ export function ChatWindow({ clientId, lawyerId, onClose }) {
   }, [clientId, lawyerId, loadMessages, messages, caseApproved]);
 
   const handleSend = async () => {
-    if (!draft.trim() || !caseApproved) return;
+    if (!draft.trim() || !caseApproved) {
+      return;
+    }
     
     try {
       // 1. Store message in database first
