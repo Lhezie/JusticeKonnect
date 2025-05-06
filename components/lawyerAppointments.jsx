@@ -1,6 +1,6 @@
 // components/lawyerAppointments.jsx
 import React, { useEffect, useState } from "react";
-import { LawyerLayout } from "./lawyerLayout";
+import { LawyerLayout } from "..components/LawyerLayout";
 import UseAuthProvider from "../store/authProvider";
 import dayjs from "dayjs";
 import { ToastContainer, toast } from "react-toastify";

@@ -4,7 +4,7 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
-import { LawyerLayout } from "../components/lawyerLayout";
+import { LawyerLayout } from "../components/LawyerLayout";
 import UseAuthProvider from "../store/authProvider";
 import dayjs from "dayjs";
 import { ToastContainer, toast } from "react-toastify";

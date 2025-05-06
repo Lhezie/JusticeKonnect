@@ -86,6 +86,8 @@ export default async function handler(req, res) {
     await prisma.lawyer.create({
       data: {
         userId: user.id,
+        fullName,
+        password: hashedPassword,
         professionalId,
         licenseNumber,
         organization: organization || null,

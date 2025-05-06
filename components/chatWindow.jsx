@@ -15,6 +15,9 @@ export function ChatWindow({ clientId, lawyerId, onClose }) {
   const [isMockClient, setIsMockClient] = useState(false);
   const [caseApproved, setCaseApproved] = useState(false);
   const messagesEndRef = useRef(null);
+  const clientRef = useRef(null);
+  const conversationRef = useRef(null);
+
 
   // Scroll to bottom of chat whenever messages change
   useEffect(() => {
@@ -54,51 +57,49 @@ export function ChatWindow({ clientId, lawyerId, onClose }) {
     if (!caseApproved) {
       return;
     }
-    
+  
     let unmounted = false;
     let messageHandler = null;
-    
+  
     async function initChat() {
       try {
         setLoading(true);
-        
-        // 1. Load messages from database first
+  
+        // 1. Load messages from database
         await loadMessages({ clientId, lawyerId });
-        
+  
         // 2. Initialize Twilio client
         const twilioClient = await chatService.getClient(clientId.toString());
-        
         if (unmounted) {
           return;
         }
-        
+  
         setClient(twilioClient);
+        clientRef.current = twilioClient;
         setIsMockClient(twilioClient.isMock);
-        
+  
         // 3. Get or create conversation
         const chatConversation = await chatService.getConversation(
           twilioClient,
           clientId,
           lawyerId
         );
-        
         if (unmounted) {
           return;
         }
-        
+  
         setConversation(chatConversation);
-        
-        // 4. Join the conversation if needed
+        conversationRef.current = chatConversation;
+  
+        // 4. Join conversation
         try {
           await chatConversation.join();
         } catch (err) {
-          // Already joined or using mock client, ignore
-          console.log("Join conversation result:", err);
+          console.log("Join conversation result:", err); // already joined or mock
         }
-        
-        // 5. Set up message display
+  
+        // 5. Load messages
         if (twilioClient.isMock) {
-          // Using mock client, load messages from database
           setLocalMessages(
             messages.map(msg => ({
               author: msg.senderId.toString(),
@@ -108,20 +109,16 @@ export function ChatWindow({ clientId, lawyerId, onClose }) {
             }))
           );
         } else {
-          // Using Twilio client, load messages from Twilio
           try {
             const messagePage = await chatConversation.getMessages();
             setLocalMessages(messagePage.items || []);
-            
-            // Set up message listener for real-time updates
+  
             messageHandler = (msg) => {
               setLocalMessages((prev) => [...prev, msg]);
             };
-            
             chatConversation.on("messageAdded", messageHandler);
           } catch (twilioErr) {
             console.error("Error loading Twilio messages:", twilioErr);
-            // Fallback to database messages if Twilio fails
             setLocalMessages(
               messages.map(msg => ({
                 author: msg.senderId.toString(),
@@ -132,7 +129,7 @@ export function ChatWindow({ clientId, lawyerId, onClose }) {
             );
           }
         }
-        
+  
         setLoading(false);
       } catch (err) {
         console.error("Chat initialization error:", err);
@@ -142,25 +139,133 @@ export function ChatWindow({ clientId, lawyerId, onClose }) {
         }
       }
     }
-    
-    if (caseApproved) {
-      initChat();
-    }
-    
+  
+    initChat();
+  
     return () => {
       unmounted = true;
-      
-      // Remove message listener
-      if (conversation && messageHandler) {
-        conversation.removeListener("messageAdded", messageHandler);
+  
+      if (conversationRef.current && messageHandler) {
+        conversationRef.current.removeListener("messageAdded", messageHandler);
       }
-      
-      // Shut down Twilio client
-      if (client && !client.isMock) {
-        client.shutdown();
+  
+      if (clientRef.current && !clientRef.current.isMock) {
+        clientRef.current.shutdown();
       }
     };
   }, [clientId, lawyerId, loadMessages, messages, caseApproved]);
+  
+  // useEffect(() => {
+  //   if (!caseApproved) {
+  //     return;
+  //   }
+    
+  //   let unmounted = false;
+  //   let messageHandler = null;
+    
+  //   async function initChat() {
+  //     try {
+  //       setLoading(true);
+        
+  //       // 1. Load messages from database first
+  //       await loadMessages({ clientId, lawyerId });
+        
+  //       // 2. Initialize Twilio client
+  //       const twilioClient = await chatService.getClient(clientId.toString());
+        
+  //       if (unmounted) {
+  //         return;
+  //       }
+        
+  //       setClient(twilioClient);
+  //       setIsMockClient(twilioClient.isMock);
+        
+  //       // 3. Get or create conversation
+  //       const chatConversation = await chatService.getConversation(
+  //         twilioClient,
+  //         clientId,
+  //         lawyerId
+  //       );
+        
+  //       if (unmounted) {
+  //         return;
+  //       }
+        
+  //       setConversation(chatConversation);
+        
+  //       // 4. Join the conversation if needed
+  //       try {
+  //         await chatConversation.join();
+  //       } catch (err) {
+  //         // Already joined or using mock client, ignore
+  //         console.log("Join conversation result:", err);
+  //       }
+        
+  //       // 5. Set up message display
+  //       if (twilioClient.isMock) {
+  //         // Using mock client, load messages from database
+  //         setLocalMessages(
+  //           messages.map(msg => ({
+  //             author: msg.senderId.toString(),
+  //             body: msg.content,
+  //             dateCreated: new Date(msg.createdAt),
+  //             index: msg.id
+  //           }))
+  //         );
+  //       } else {
+  //         // Using Twilio client, load messages from Twilio
+  //         try {
+  //           const messagePage = await chatConversation.getMessages();
+  //           setLocalMessages(messagePage.items || []);
+            
+  //           // Set up message listener for real-time updates
+  //           messageHandler = (msg) => {
+  //             setLocalMessages((prev) => [...prev, msg]);
+  //           };
+            
+  //           chatConversation.on("messageAdded", messageHandler);
+  //         } catch (twilioErr) {
+  //           console.error("Error loading Twilio messages:", twilioErr);
+  //           // Fallback to database messages if Twilio fails
+  //           setLocalMessages(
+  //             messages.map(msg => ({
+  //               author: msg.senderId.toString(),
+  //               body: msg.content,
+  //               dateCreated: new Date(msg.createdAt),
+  //               index: msg.id
+  //             }))
+  //           );
+  //         }
+  //       }
+        
+  //       setLoading(false);
+  //     } catch (err) {
+  //       console.error("Chat initialization error:", err);
+  //       if (!unmounted) {
+  //         setError("Failed to initialize chat. Please try again later.");
+  //         setLoading(false);
+  //       }
+  //     }
+  //   }
+    
+  //   if (caseApproved) {
+  //     initChat();
+  //   }
+    
+  //   return () => {
+  //     unmounted = true;
+      
+  //     // Remove message listener
+  //     if (conversation && messageHandler) {
+  //       conversation.removeListener("messageAdded", messageHandler);
+  //     }
+      
+  //     // Shut down Twilio client
+  //     if (client && !client.isMock) {
+  //       client.shutdown();
+  //     }
+  //   };
+  // }, [clientId, lawyerId, loadMessages, messages, caseApproved]);
 
   const handleSend = async () => {
     if (!draft.trim() || !caseApproved) {
