@@ -2,11 +2,14 @@ import jwt from "jsonwebtoken";
 import cookie from "cookie";
 
 export default function authenticateToken(req, res, next) {
-  if (!req.headers.cookie) {
+  const rawCookie = req.headers.cookie;
+
+  //  Check if cookie exists before parsing
+  if (!rawCookie) {
     return res.status(401).json({ message: "Unauthorized - No Cookies Found" });
   }
 
-  const cookies = cookie.parse(req.headers.cookie);
+  const cookies = cookie.parse(rawCookie);
   const token = cookies.refreshToken;
 
   if (!token) {
@@ -21,6 +24,33 @@ export default function authenticateToken(req, res, next) {
     return res.status(403).json({ message: "Forbidden - Invalid Token", error: error.message });
   }
 }
+
+
+// import jwt from "jsonwebtoken";
+// import cookie from "cookie";
+
+// export default function authenticateToken(req, res, next) {
+//   const {cookie: rawCookie} = req.headers;
+  
+//   if (!req.headers.cookie) {
+//     return res.status(401).json({ message: "Unauthorized - No Cookies Found" });
+//   }
+
+//   const cookies = cookie.parse(req.headers.cookie);
+//   const token = cookies.refreshToken;
+
+//   if (!token) {
+//     return res.status(401).json({ message: "Unauthorized - No Token Found" });
+//   }
+
+//   try {
+//     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+//     req.user = decoded; // Attach user data for downstream access
+//     next();
+//   } catch (error) {
+//     return res.status(403).json({ message: "Forbidden - Invalid Token", error: error.message });
+//   }
+// }
 // import jwt from "jsonwebtoken";
 // import cookie from "cookie";
 

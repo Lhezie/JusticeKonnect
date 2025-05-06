@@ -42,6 +42,8 @@ model Appointment {
 
 model Lawyer {
   id             Int      @id @default(autoincrement())
+  fullName       String
+  password       String   @db.VarChar(255)
   userId         Int      @unique
   professionalId String   @unique
   licenseNumber  String   @unique

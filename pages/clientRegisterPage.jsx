@@ -1,5 +1,5 @@
 // pages/clientRegisterPage.jsx
-"use client"; // Ensure client-side rendering
+// "use client"; // Ensure client-side rendering
 import { useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Image from "next/image";
@@ -37,35 +37,34 @@ export default function ClientRegisterPage() {
   });
 
   // Handle Form Submission
-  const handleRegister = async (values, { setSubmitting, resetForm }) => {
-    try {
-      await axios.post(
-        "/api/auth/clientregister.js",   // absolute API path
-        {
-          fullName: values.fullName,
-          email: values.email,
-          password: values.password,
-          phoneNumber: values.phoneNumber,
-        },
-        {
-          headers: { "Content-Type": "application/json" },
-          withCredentials: true,
-        }
-      );
+  // Inside ClientRegisterPage component
+const handleRegister = async (values, { setSubmitting, resetForm }) => {
+  try {
+    await axios.post(
+      "/api/auth/clientregister", // `
+      {
+        fullName: values.fullName,
+        email: values.email,
+        password: values.password,
+        phoneNumber: values.phoneNumber,
+      },
+      {
+        headers: { "Content-Type": "application/json" },
+        withCredentials: true, // 
+      }
+    );
 
-      toast.success("Registration Successful! Redirecting...");
-      resetForm();
-      setTimeout(() => router.push("/clientLoginPage"), 2000);
-    } catch (error) {
-      toast.error(
-        error.response?.data?.message ||
-          "Registration Failed! Please try again."
-      );
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
+    toast.success("Registration Successful! Redirecting...");
+    resetForm();
+    setTimeout(() => router.push("/clientLoginPage"), 2000);
+  } catch (error) {
+    toast.error(
+      error.response?.data?.message || "Registration Failed! Please try again."
+    );
+  } finally {
+    setSubmitting(false);
+  }
+};
   return (
     <div>
       <ToastContainer />

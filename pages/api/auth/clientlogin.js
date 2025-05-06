@@ -42,20 +42,20 @@ export default async function handler(req, res) {
 
   const accessToken = generateAccessToken(user);
   const refreshToken = generateRefreshToken(user);
-
   res.setHeader(
     "Set-Cookie",
     cookie.serialize("refreshToken", refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+      secure: process.env.NODE_ENV === "development", // true in prod, false in dev
+      sameSite: process.env.NODE_ENV === "development" ? "strict" : "lax", // lax is safer for localhost
       path: "/",
+      maxAge: 60 * 60 * 24 * 7, // 7 days
     })
   );
-
-  res.status(200).json({
+  return res.status(200).json({
     message: "Login successful",
+    user,
     accessToken,
-    user: { id: user.id, fullName: user.fullName, email: user.email, role: user.role },
   });
 }
+

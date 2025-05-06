@@ -1,6 +1,4 @@
 import { PrismaClient } from "@prisma/client";
-import dotenv from 'dotenv';
-dotenv.config();
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import * as cookie from "cookie";
@@ -9,7 +7,6 @@ const prisma = global.prisma || new PrismaClient();
 if (process.env.NODE_ENV === "development") {
   global.prisma = prisma;
 }
-console.log("DATABASE_URL:", process.env.DATABASE_URL);
 
 function generateAccessToken(user) {
   return jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET, {
@@ -24,9 +21,9 @@ function generateRefreshToken(user) {
 }
 export default async function handler(req, res) {
   if (req.method !== "POST") {
-    return res.status(405).json({ message: "Method Not Allowed" });
+    return res.status(405).json({ message: "Method Not Allowed" }); 
   }
-
+  
   const { fullName, email, password, phoneNumber } = req.body;
   if (!fullName || !email || !password || !phoneNumber) {
     return res.status(400).json({ message: "All fields are required" });
@@ -66,7 +63,7 @@ export default async function handler(req, res) {
     "Set-Cookie",
     cookie.serialize("refreshToken", refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: process.env.NODE_ENV === "development",
       sameSite: "strict",
       path: "/",
     })

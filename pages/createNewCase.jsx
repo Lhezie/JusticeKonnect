@@ -104,7 +104,9 @@ export default function CreateNewCase() {
       
       const data = await res.json();
 
-      if (!res.ok) throw new Error(data.message || "Upload failed");
+      if (!res.ok) {
+        throw new Error(data.message || "Upload failed");
+      }
 
       toast.success("Submitted successfully!");
       resetForm();

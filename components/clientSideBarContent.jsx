@@ -10,13 +10,15 @@ import { useRouter } from "next/navigation";
 import UseAuthProvider from "../store/authProvider";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import axios from "axios";
+
+
 
 export const ClientSideBarContent = () => {
   const pathname = usePathname();
   const router = useRouter();
-  const { user} = UseAuthProvider();
-
- 
+  const { user, setAuth } = UseAuthProvider();
+// const { user} = UseAuthProvider();
 
   return (
     <div className="">
@@ -98,10 +100,17 @@ export const ClientSideBarContent = () => {
         {/* Logout - Positioned at the Bottom */}
         <div className="absolute top-[28.21rem] md:top-[31.21rem] right-[2rem] md:left-[2rem]">
           <div
-            onClick={() => router.push("/settings")}
-            className={`flex items-center py-2 px-2 w-fit hover:gradientButton${
-              pathname === "/settings" ? "gradientButton" : ""
-            }`}
+            onClick={async () => {
+              try {
+                await axios.post("/api/auth/logout", {}, { withCredentials: true }); // Clear cookie
+                setAuth({ user: null, accessToken: null });
+                toast.success("Logged out successfully"); // Optional: clear Zustand state
+                router.push("/clientLoginPage");  // Redirect to login
+              } catch (error) {
+                console.error("Logout failed:", error);
+              }
+            }}
+            className={`flex items-center py-2 px-2 w-fit hover:gradientButton`}
           >
             <RiLogoutCircleLine size={24} />
             <div className="pl-2">Logout</div>
@@ -109,5 +118,21 @@ export const ClientSideBarContent = () => {
         </div>
       </div>
     </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   );
 };

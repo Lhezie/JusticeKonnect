@@ -1,5 +1,4 @@
 "use client";
-
 import { useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Image from "next/image";
@@ -9,14 +8,13 @@ import "react-toastify/dist/ReactToastify.css";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
 import axios from "axios";
-import useAuth from "../store/authProvider.jsx";  // ✅ double-check your filename here
+import useAuth from "../store/authProvider.jsx";  // 
 
 export default function ClientLoginPage() {
   const router = useRouter();
   const pathname = usePathname();
   const [showPassword, setShowPassword] = useState(false);
-  const setAuth = useAuth((s) => s.setAuth);  // ✅ get setAuth from Zustand store
-
+  const setAuth = useAuth((s) => s.setAuth);  // 
   // Validation schema using Yup
   const validationSchema = Yup.object().shape({
     email: Yup.string()

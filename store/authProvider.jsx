@@ -20,7 +20,9 @@ const useAuth = create(
             method: "POST",
             credentials: "include",
           });
-          if (!res.ok) throw new Error("Could not refresh token");
+          if (!res.ok) {
+            throw new Error("Could not refresh token");
+          }
           const { accessToken } = await res.json();
           set({ accessToken });
 
