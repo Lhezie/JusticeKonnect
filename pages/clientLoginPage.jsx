@@ -28,16 +28,16 @@ export default function ClientLoginPage() {
   // Handle form submit
   const handleSubmit = async (values, { setSubmitting }) => {
     try {
-      // ✅ POST to your login API (cookies are set server-side)
+      //  POST to your login API (cookies are set server-side)
       const { data } = await axios.post(
-        "/api/auth/clientlogin",
+        "https://justicekonnectapp.onrender.com/api/auth/clientlogin",
         values,
         {
-          withCredentials: true,  // ✅ ensure cookies are accepted
+          withCredentials: true,  //  ensure cookies are accepted
         }
       );
 
-      // ✅ Save user and token into Zustand store
+      // Save user and token into Zustand store
       setAuth({ user: data.user, accessToken: data.accessToken });
 
       toast.success("Login Successful! Redirecting...");
