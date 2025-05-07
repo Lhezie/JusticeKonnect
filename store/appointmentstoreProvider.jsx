@@ -19,7 +19,9 @@ export const useAppointmentStore = create((set, get) => ({
         headers: { 'Content-Type': 'application/json' }
       });
       
-      if (!res.ok) throw new Error(`API returned ${res.status}`);
+      if (!res.ok) {
+        throw new Error(`API returned ${res.status}`);
+      }
       
       const data = await res.json();
       set({ 
@@ -49,7 +51,9 @@ export const useAppointmentStore = create((set, get) => ({
   // Fetch both available and busy slots for a lawyer
   fetchAvailability: async (start, end) => {
     const { selectedLawyerId } = get();
-    if (!selectedLawyerId) return;
+    if (!selectedLawyerId) {
+      return;
+    }
     
     set({ loading: true, error: null, viewDates: { start, end } });
     
@@ -65,7 +69,9 @@ export const useAppointmentStore = create((set, get) => ({
         })
       });
       
-      if (!availRes.ok) throw new Error(`Available slots API returned ${availRes.status}`);
+      if (!availRes.ok) {
+        throw new Error(`Available slots API returned ${availRes.status}`);
+      }
       const availData = await availRes.json();
       
       // Fetch busy slots
@@ -79,7 +85,9 @@ export const useAppointmentStore = create((set, get) => ({
         })
       });
       
-      if (!busyRes.ok) throw new Error(`Busy slots API returned ${busyRes.status}`);
+      if (!busyRes.ok) {
+        throw new Error(`Busy slots API returned ${busyRes.status}`);
+      }
       const busyData = await busyRes.json();
       
       set({ 
@@ -120,7 +128,9 @@ export const useAppointmentStore = create((set, get) => ({
         })
       });
       
-      if (!res.ok) throw new Error(`Booking API returned ${res.status}`);
+      if (!res.ok) {
+        throw new Error(`Booking API returned ${res.status}`);
+      }
       
       const data = await res.json();
       set({ 

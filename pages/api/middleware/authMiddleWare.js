@@ -1,34 +1,55 @@
 // pages/api/middleware/authMiddleWare.js
-import jwt from "jsonwebtoken";
 import cookie from "cookie";
 
 export default function authenticateToken(handler) {
   return async function (req, res) {
-    try {
-      const cookies = req.headers.cookie;
-      if (!cookies) {
-        return res.status(401).json({ message: "Unauthorized - No cookies found" });
-      }
-      const { refreshToken } = cookie.parse(cookies);
-      if (!refreshToken) {
-        return res.status(401).json({ message: "Unauthorized - No token found" });
-      }
-      
-      try {
-        const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
-        req.user = decoded;
-        return handler(req, res); // continue to actual handler
-      } catch (error) {
-        const message = error.name === "TokenExpiredError"
-          ? "Forbidden - Token Expired"
-          : "Forbidden - Invalid Token";
-        return res.status(403).json({ message: "Forbidden - Invalid token", error: error.message });
-      }
-    } catch (error) {
-      return res.status(401).json({ message: "Authentication error", error: error.message });
+    const cookies = req.headers.cookie;
+    if (!cookies) {
+      return res.status(401).json({ message: "Unauthorized - No cookies found" });
     }
+
+    const { sessionUserId } = cookie.parse(cookies);
+    if (!sessionUserId) {
+      return res.status(401).json({ message: "Unauthorized - No session ID" });
+    }
+
+    // Attach the user ID to the request object for downstream use
+    req.user = { id: parseInt(sessionUserId, 10) };
+    return handler(req, res);
   };
 }
+
+// // pages/api/middleware/authMiddleWare.js
+// import jwt from "jsonwebtoken";
+// import cookie from "cookie";
+
+// export default function authenticateToken(handler) {
+//   return async function (req, res) {
+//     try {
+//       const cookies = req.headers.cookie;
+//       if (!cookies) {
+//         return res.status(401).json({ message: "Unauthorized - No cookies found" });
+//       }
+//       const { refreshToken } = cookie.parse(cookies);
+//       if (!refreshToken) {
+//         return res.status(401).json({ message: "Unauthorized - No token found" });
+//       }
+      
+//       try {
+//         const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+//         req.user = decoded;
+//         return handler(req, res); // continue to actual handler
+//       } catch (error) {
+//         const message = error.name === "TokenExpiredError"
+//           ? "Forbidden - Token Expired"
+//           : "Forbidden - Invalid Token";
+//         return res.status(403).json({ message: "Forbidden - Invalid token", error: error.message });
+//       }
+//     } catch (error) {
+//       return res.status(401).json({ message: "Authentication error", error: error.message });
+//     }
+//   };
+// }
 
 // export default function authenticateToken(handler) {
 //   return async function (req, res) {

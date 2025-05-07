@@ -3,15 +3,15 @@ import "daisyui/dist/full.css";
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import useAuth from "../store/authProvider.jsx";  
-import { useRouter } from "next/router";  // ✅ Needed for redirect
+import { useRouter } from "next/router";  //  Needed for redirect
 
 // Dynamically import Loader with SSR disabled
 const Loader = dynamic(() => import("../components/loader.jsx"), { ssr: false });
 
 function MyApp({ Component, pageProps }) {
   const [loading, setLoading] = useState(true);
-  const refreshAccessToken = useAuth((state) => state.refreshAccessToken);
-  const router = useRouter();  // ✅ Initialize router
+  const refreshSession = useAuth((state) => state.refreshSession);
+  const router = useRouter();  // Initialize router
 
   useEffect(() => {
     const publicRoutes = ["/clientLoginPage", "/clientRegisterPage"];
@@ -23,7 +23,7 @@ function MyApp({ Component, pageProps }) {
   
     const init = async () => {
       try {
-        await refreshAccessToken();
+        await refreshSession();
       } catch (err) {
         console.warn("Token refresh failed", err);
         router.push("/clientLoginPage");
@@ -33,7 +33,7 @@ function MyApp({ Component, pageProps }) {
     };
   
     init();
-  }, [refreshAccessToken, router]);
+  }, [refreshSession, router]);
   
   // useEffect(() => {
   //   const init = async () => {

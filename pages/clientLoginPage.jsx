@@ -33,12 +33,13 @@ export default function ClientLoginPage() {
         "https://justicekonnectapp.onrender.com/api/auth/clientlogin",
         values,
         {
-          withCredentials: true,  //  ensure cookies are accepted
+          withCredentials: true,  //  Accepted cookies in the(e.g sessionUserId)
+
         }
       );
 
       // Save user and token into Zustand store
-      setAuth({ user: data.user, accessToken: data.accessToken });
+      setAuth({ user: data.user });
 
       toast.success("Login Successful! Redirecting...");
       setTimeout(() => router.push("/clientDashboard"), 2000);

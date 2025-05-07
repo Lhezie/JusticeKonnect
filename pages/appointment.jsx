@@ -28,7 +28,9 @@ export default function AppointmentPage() {
 
   // Check if client has approved cases and retrieve assigned lawyer
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      return;
+    }
 
     async function checkApprovedCases() {
       try {
@@ -77,7 +79,9 @@ export default function AppointmentPage() {
 
   // Fetch lawyer availability when assigned lawyer is set and view dates change
   useEffect(() => {
-    if (!assignedLawyer || !viewDates || !canBookAppointment) return;
+    if (!assignedLawyer || !viewDates || !canBookAppointment) {
+      return;
+    }
     
     async function fetchAvailability() {
       try {
@@ -193,7 +197,9 @@ export default function AppointmentPage() {
 
   // Handle appointment booking confirmation
   const handleConfirmBooking = async () => {
-    if (!selectedSlot) return;
+    if (!selectedSlot) {
+      return;
+    }
 
     try {
       const response = await fetch('/api/appointments/book', {

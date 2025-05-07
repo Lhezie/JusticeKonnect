@@ -1,3 +1,4 @@
+// pages/api/auth/me.js
 import { PrismaClient } from "@prisma/client";
 import authenticateToken from "../middleware/authMiddleWare";
 
@@ -7,13 +8,11 @@ if (process.env.NODE_ENV === "development") {
 }
 
 async function handler(req, res) {
-  //  CORS headers
   res.setHeader("Access-Control-Allow-Credentials", "true");
-  res.setHeader("Access-Control-Allow-Origin", "https://justicekonnectapp.onrender.com"); // replace with your frontend domain
+  res.setHeader("Access-Control-Allow-Origin", "https://justicekonnect.vercel.app"); // your frontend domain
   res.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-  //  Handle preflight OPTIONS request
   if (req.method === "OPTIONS") {
     return res.status(200).end();
   }
@@ -39,6 +38,48 @@ async function handler(req, res) {
 }
 
 export default authenticateToken(handler);
+
+// import { PrismaClient } from "@prisma/client";
+// import authenticateToken from "../middleware/authMiddleWare";
+
+// const prisma = global.prisma || new PrismaClient();
+// if (process.env.NODE_ENV === "development") {
+//   global.prisma = prisma;
+// }
+
+// async function handler(req, res) {
+//   //  CORS headers
+//   res.setHeader("Access-Control-Allow-Credentials", "true");
+//   res.setHeader("Access-Control-Allow-Origin", "https://justicekonnectapp.onrender.com"); // replace with your frontend domain
+//   res.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS");
+//   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+
+//   //  Handle preflight OPTIONS request
+//   if (req.method === "OPTIONS") {
+//     return res.status(200).end();
+//   }
+
+//   if (req.method !== "GET") {
+//     return res.status(405).json({ message: "Method Not Allowed" });
+//   }
+
+//   try {
+//     const user = await prisma.user.findUnique({
+//       where: { id: req.user.id },
+//     });
+
+//     if (!user) {
+//       return res.status(404).json({ message: "User not found" });
+//     }
+
+//     res.status(200).json({ user });
+//   } catch (err) {
+//     console.error("Error fetching user:", err);
+//     res.status(500).json({ message: "Server Error" });
+//   }
+// }
+
+// export default authenticateToken(handler);
 
 
 // // pages/api/auth/me.js
