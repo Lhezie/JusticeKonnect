@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -18,54 +12,59 @@ model User {
   fullName           String
   email              String        @unique
   password           String        @db.VarChar(255)
-  phoneNumber        String        @unique
-  role               String        @default("client")
-  stripeCustomerId   String?       @unique
-  isVerified         Boolean       @default(false)
+  phoneNumber        String
   created_at         DateTime      @default(now())
+  role               String        @default("client")
   updated_at         DateTime      @updatedAt
-  messagesSent       Message[]     @relation("UserMessagesSent")
-  messagesReceived   Message[]     @relation("UserMessagesReceived")
+  isVerified         Boolean       @default(false)
+  stripeCustomerId   String?       @unique
   clientAppointments Appointment[] @relation("ClientAppointments")
   lawyerAppointments Appointment[] @relation("LawyerAppointments")
-  payments           Payment[]     @relation("UserPayments")
   blogs              Blog[]
-  lawyerProfile      Lawyer?       @relation("UserLawyerProfile")
   clientProfile      Client?       @relation("UserClientProfile")
+  lawyerProfile      Lawyer?       @relation("UserLawyerProfile")
+  messagesReceived   Message[]     @relation("UserMessagesReceived")
+  messagesSent       Message[]     @relation("UserMessagesSent")
+  payments           Payment[]     @relation("UserPayments")
 }
 
 model Appointment {
-  id         Int      @id @default(autoincrement())
-  client     User     @relation("ClientAppointments", fields: [clientId], references: [id])
-  clientId   Int
-  lawyer     User     @relation("LawyerAppointments", fields: [lawyerId], references: [id])
-  lawyerId   Int
-  start      DateTime
-  end        DateTime
-  created_at DateTime @default(now())
+  id        Int      @id @default(autoincrement())
+  clientId  Int
+  lawyerId  Int
+  date      DateTime
+  status    String   @default("scheduled")
+  createdAt DateTime @default(now())
+  client    User     @relation("ClientAppointments", fields: [clientId], references: [id])
+  lawyer    User     @relation("LawyerAppointments", fields: [lawyerId], references: [id])
+
+  @@index([clientId], map: "Appointment_clientId_fkey")
+  @@index([lawyerId], map: "Appointment_lawyerId_fkey")
 }
 
-
 model Lawyer {
-  id             Int      @id @default(autoincrement())
-  userId         Int      @unique
-  professionalId String   @unique
-  licenseNumber  String   @unique
+  id             Int            @id @default(autoincrement())
+  userId         Int            @unique
+  professionalId String         @unique
+  licenseNumber  String         @unique
   organization   String?
   specialty      String?
   bio            String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  user           User     @relation("UserLawyerProfile", fields: [userId], references: [id])
-  cases          Case[]   @relation("LawyerCases")
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  fullName       String
+  password       String         @db.VarChar(255)
+  Availability   Availability[]
+  cases          Case[]         @relation("LawyerCases")
+  user           User           @relation("UserLawyerProfile", fields: [userId], references: [id])
 }
 
 model Client {
   id      Int     @id @default(autoincrement())
   userId  Int     @unique
   address String?
-  user    User    @relation("UserClientProfile", fields: [userId], references: [id])
   cases   Case[]  @relation("ClientCases")
+  user    User    @relation("UserClientProfile", fields: [userId], references: [id])
 }
 
 model Case {
@@ -83,24 +82,24 @@ model Case {
   additionalInfo String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+  client         Client   @relation("ClientCases", fields: [clientId], references: [id], map: "ClientCaseRelation")
+  lawyer         Lawyer?  @relation("LawyerCases", fields: [lawyerId], references: [id], map: "LawyerCaseRelation")
 
-  client Client  @relation("ClientCases", fields: [clientId], references: [id], map: "ClientCaseRelation")
-  lawyer Lawyer? @relation("LawyerCases", fields: [lawyerId], references: [id], map: "LawyerCaseRelation")
+  @@index([clientId], map: "ClientCaseRelation")
+  @@index([lawyerId], map: "LawyerCaseRelation")
 }
-
-
-
-
 
 model Payment {
   id            Int      @id @default(autoincrement())
   userId        Int
-  role          String   @default("client") // "client" or "lawyer"
+  role          String   @default("client")
   amount        Float
-  status        String   @default("completed") // "completed", "failed"
+  status        String   @default("completed")
   transactionId String   @unique
   createdAt     DateTime @default(now())
   user          User     @relation("UserPayments", fields: [userId], references: [id])
+
+  @@index([userId], map: "Payment_userId_fkey")
 }
 
 model Message {
@@ -109,8 +108,11 @@ model Message {
   receiverId Int
   content    String
   createdAt  DateTime @default(now())
-  sender     User     @relation("UserMessagesSent", fields: [senderId], references: [id])
   receiver   User     @relation("UserMessagesReceived", fields: [receiverId], references: [id])
+  sender     User     @relation("UserMessagesSent", fields: [senderId], references: [id])
+
+  @@index([receiverId], map: "Message_receiverId_fkey")
+  @@index([senderId], map: "Message_senderId_fkey")
 }
 
 model Blog {
@@ -119,6 +121,21 @@ model Blog {
   content   String
   authorId  Int
   createdAt DateTime @default(now())
+  author    User     @relation(fields: [authorId], references: [id])
 
-  author User @relation(fields: [authorId], references: [id])
+  @@index([authorId], map: "Blog_authorId_fkey")
+}
+
+model Availability {
+  id            Int      @id @default(autoincrement())
+  lawyerId      Int
+  startTime     DateTime
+  endTime       DateTime
+  isRecurring   Boolean  @default(false)
+  recurringDays String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime
+  Lawyer        Lawyer   @relation(fields: [lawyerId], references: [id])
+
+  @@index([lawyerId], map: "Availability_lawyerId_fkey")
 }

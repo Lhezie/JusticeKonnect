@@ -30,6 +30,19 @@ export const ClientSideBarContent = () => {
       <div className="flex flex-col   relative ">
         {/* Main Menu */}
         <div className="flex-grow">
+
+        <div className="pt-6">
+            <div
+              onClick={() => router.push("/clientDashboard")}
+              className={`flex items-center py-2 px-2 hover:gradientButton ${
+                pathname === "/clientDashboard" ? "py-2 px-2 gradientButton" : ""
+              }`}
+            >
+              <VscLaw size={24} />
+              <div className="pl-2">Dashboard</div>
+            </div>
+          </div>
+
           {/* New Case */}
           <div className="pt-6">
             <div

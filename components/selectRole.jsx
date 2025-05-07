@@ -71,7 +71,7 @@ export default function SelectRole() {
 
           <div className="pb-12 px-6">
                       <button
-                          onClick={(()=>{router.push("/professionalsLoginPage")})}
+                          onClick={(()=>{router.push("/lawyerRegisterPage")})}
               type="submit"
               className="w-full bg-blue-400 px-6 text-white p-3 rounded-xl font-semibold"
             >
