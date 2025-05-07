@@ -9,14 +9,15 @@ import { useRouter } from "next/navigation";
 import Loader from "../components/loader";
 import TestimonialCarousel from "../components/TestimonialCarousel";
 
-import QuickActions from "../components/QuickActions";// Ensure this path is correct
-
+import QuickActions from "../components/QuickActions"; // Ensure this path is correct
 
 const ClientDashboard = () => {
   // Use your auth store correctly
   const { user, setAuth, refreshAccessToken } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
+  const [assignedLawyer, setAssignedLawyer] = useState(null);
+
   const [caseStats, setCaseStats] = useState({
     submitted: 0,
     underReview: 0,
@@ -52,6 +53,26 @@ const ClientDashboard = () => {
     }
   }, [user]);
 
+  const fetchAssignedLawyer = async () => {
+    try {
+      const response = await fetch("/api/client/assigned-lawyer", {
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setAssignedLawyer(data.lawyer);
+      } else {
+        console.log("No lawyer assigned yet.");
+        setAssignedLawyer(null);
+      }
+    } catch (error) {
+      console.error("Error fetching assigned lawyer:", error);
+      setAssignedLawyer(null);
+    }
+  };
+
   // Function to fetch case statistics for the logged-in user
   const fetchCaseStatistics = async (userId) => {
     try {
@@ -76,6 +97,9 @@ const ClientDashboard = () => {
       setLoading(false);
     }
   };
+
+  fetchCaseStatistics(user.id);
+  fetchAssignedLawyer();
 
   // Case overview data with dynamic counts
   const caseOverviewData = [
@@ -130,6 +154,26 @@ const ClientDashboard = () => {
           Hi, <span className="font-bold">{user?.fullName}</span>
         </div>
         <div className="pt-2 text-lg font-semibold">Case Overview</div>
+
+        {assignedLawyer ? (
+          <div className="mt-4 p-4 bg-green-100 rounded-lg text-green-800 shadow">
+            <p className="text-sm md:text-md lg:text-md font-semibold">
+              Your Assigned Lawyer:
+            </p>
+            <p className="text-md md:text-lg lg:text-lg font-bold">
+              {assignedLawyer.fullName}
+            </p>
+            <p className="text-xs md:text-sm lg:text-sm">
+              {assignedLawyer.email}
+            </p>
+          </div>
+        ) : (
+          <div className="mt-4 p-4 bg-yellow-100 rounded-lg text-yellow-800 shadow">
+            <p className="text-sm md:text-md lg:text-md font-semibold">
+              No lawyer has been assigned to your cases yet.
+            </p>
+          </div>
+        )}
 
         {/* Case Overview Cards */}
         <div className="grid grid-cols-3 gap-2 mt-4 justify-center">

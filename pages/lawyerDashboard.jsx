@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import useLawyerAuth from "../store/useLawyerAuthProvider";
-import { LawyerLayout } from "../components/LawyerLayout";
+import { LawyerLayout } from "../components/lawyerLayout";
 import { useRouter } from "next/navigation";
 import Loader from "../components/loader";
 import { FaGavel, FaCalendarAlt, FaUser, FaComment } from "react-icons/fa";
