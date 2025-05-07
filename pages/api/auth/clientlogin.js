@@ -44,7 +44,7 @@ export default async function handler(req, res) {
     // Set session cookie with user ID only
     res.setHeader(
       "Set-Cookie",
-      cookie.serialize("sessionUserId", user.id.toString(), {
+      cookie.serialize("sessionUserId", String(user.id), {
         httpOnly: true,
         secure: true,
         sameSite: "None",

@@ -2,7 +2,7 @@ import "../styles/globals.css";
 import "daisyui/dist/full.css";
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
-import useAuth from "../store/authProvider.jsx";  
+import useAuth from "../store/authProvider";  
 import { useRouter } from "next/router";  //  Needed for redirect
 
 // Dynamically import Loader with SSR disabled

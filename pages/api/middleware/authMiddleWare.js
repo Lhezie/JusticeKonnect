@@ -3,21 +3,23 @@ import cookie from "cookie";
 
 export default function authenticateToken(handler) {
   return async function (req, res) {
-    const cookies = req.headers.cookie;
-    if (!cookies) {
-      return res.status(401).json({ message: "Unauthorized - No cookies found" });
-    }
+    try {
+      const rawCookies = req.headers.cookie || ""; // Safe fallback
+      const { sessionUserId } = cookie.parse(rawCookies);
 
-    const { sessionUserId } = cookie.parse(cookies);
-    if (!sessionUserId) {
-      return res.status(401).json({ message: "Unauthorized - No session ID" });
-    }
+      if (!sessionUserId) {
+        return res.status(401).json({ message: "Unauthorized - No session ID" });
+      }
 
-    // Attach the user ID to the request object for downstream use
-    req.user = { id: parseInt(sessionUserId, 10) };
-    return handler(req, res);
+      req.user = { id: parseInt(sessionUserId, 10) };
+      return handler(req, res);
+    } catch (error) {
+      console.error("Auth error:", error);
+      return res.status(401).json({ message: "Authentication error", error: error.message });
+    }
   };
 }
+
 
 // // pages/api/middleware/authMiddleWare.js
 // import jwt from "jsonwebtoken";
