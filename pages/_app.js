@@ -14,19 +14,41 @@ function MyApp({ Component, pageProps }) {
   const router = useRouter();  // ✅ Initialize router
 
   useEffect(() => {
+    const publicRoutes = ["/clientLoginPage", "/clientRegisterPage"];
+  
+    if (publicRoutes.includes(router.pathname)) {
+      setLoading(false); // Don’t block rendering on public pages
+      return;
+    }
+  
     const init = async () => {
       try {
         await refreshAccessToken();
       } catch (err) {
         console.warn("Token refresh failed", err);
-        // Optional: redirect to login page if refresh fails
         router.push("/clientLoginPage");
       } finally {
         setLoading(false);
       }
     };
+  
     init();
   }, [refreshAccessToken, router]);
+  
+  // useEffect(() => {
+  //   const init = async () => {
+  //     try {
+  //       await refreshAccessToken();
+  //     } catch (err) {
+  //       console.warn("Token refresh failed", err);
+  //       // Optional: redirect to login page if refresh fails
+  //       router.push("/clientLoginPage");
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
+  //   init();
+  // }, [refreshAccessToken, router]);
 
   if (loading) {
     return <Loader />;
