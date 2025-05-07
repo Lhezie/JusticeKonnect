@@ -15,8 +15,10 @@ export default async function handler(req, res) {
     if (!req.headers.cookie) {
       return res.status(401).json({ message: "Unauthorized - No cookies found" });
     }
+
     const cookies = cookie.parse(req.headers.cookie || "");
     const token = cookies.refreshToken;
+
     if (!token) {
       return res.status(401).json({ message: "Unauthorized - No token found" });
     }
@@ -44,10 +46,13 @@ export default async function handler(req, res) {
           include: {
             user: {
               select: {
-                fullName: true,
-                email: true
+                email: true // Only email is in the User table
               }
             }
+          },
+          select: {
+            fullName: true,
+            specialty: true
           }
         }
       }
@@ -57,16 +62,17 @@ export default async function handler(req, res) {
       return res.status(404).json({ message: "No assigned lawyer found for your cases yet." });
     }
 
-    const assignedLawyer = clientCases[0].lawyer?.user;
+    const lawyerData = clientCases[0].lawyer;
 
-    if (!assignedLawyer) {
+    if (!lawyerData) {
       return res.status(404).json({ message: "Assigned lawyer data is missing." });
     }
 
     res.status(200).json({
       lawyer: {
-        fullName: assignedLawyer.fullName,
-        email: assignedLawyer.email
+        fullName: lawyerData.fullName,
+        specialty: lawyerData.specialty || null,
+        email: lawyerData.user?.email || null
       }
     });
   } catch (error) {

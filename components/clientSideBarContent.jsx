@@ -10,6 +10,8 @@ import { useRouter } from "next/navigation";
 import UseAuthProvider from "../store/authProvider";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { FiGrid } from "react-icons/fi";
+
 
 export const ClientSideBarContent = () => {
   const pathname = usePathname();
@@ -38,7 +40,7 @@ export const ClientSideBarContent = () => {
                 pathname === "/clientDashboard" ? "py-2 px-2 gradientButton" : ""
               }`}
             >
-              <VscLaw size={24} />
+              <FiGrid  size={24} />
               <div className="pl-2">Dashboard</div>
             </div>
           </div>

@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
-import { ClientLayout } from "../components/ClientLayout";
+import { ClientLayout } from "../components/clientLayout";
 import UseAuthProvider from "../store/authProvider";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
