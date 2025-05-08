@@ -4,14 +4,22 @@ import bcrypt from "bcrypt";
 import * as cookie from "cookie";
 
 const prisma = global.prisma || new PrismaClient();
-if (process.env.NODE_ENV === "development") {
+if (process.env.NODE_ENV === "production") {
   global.prisma = prisma;
 }
 
+// Allowed origins for CORS
+const ALLOWED_ORIGINS = [
+  "https://justicekonnect.vercel.app", // production
+  "http://localhost:3000"               // local development
+];
+
 export default async function handler(req, res) {
-  // Allow CORS for frontend
+  const origin = req.headers.origin;
+  if (ALLOWED_ORIGINS.includes(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+  }
   res.setHeader("Access-Control-Allow-Credentials", "true");
-  res.setHeader("Access-Control-Allow-Origin", "https://justicekonnect.vercel.app");
   res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
@@ -20,7 +28,7 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  //  POST only
+  // Only allow POST for login
   if (req.method !== "POST") {
     return res.status(405).json({ message: "Method Not Allowed" });
   }
@@ -46,8 +54,8 @@ export default async function handler(req, res) {
       "Set-Cookie",
       cookie.serialize("sessionUserId", String(user.id), {
         httpOnly: true,
-        secure: true,
-        sameSite: "None",
+        secure: "isProd",
+        sameSite: "isProd"? "None" : "Lax", // None in prod (to allow cross‑site), Lax in dev
         path: "/",
         maxAge: 60 * 60 * 24 * 7, // 7 days
       })
@@ -55,13 +63,83 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       message: "Login successful",
-      user,
+      user: {
+        id: user.id,
+        fullName: user.fullName,
+        email: user.email,
+        role: user.role,
+      },
     });
   } catch (error) {
     console.error("Login error:", error);
     return res.status(500).json({ message: "Internal Server Error" });
   }
 }
+
+
+// // pages/api/auth/clientlogin.js
+// import { PrismaClient } from "@prisma/client";
+// import bcrypt from "bcrypt";
+// import * as cookie from "cookie";
+
+// const prisma = global.prisma || new PrismaClient();
+// if (process.env.NODE_ENV === "production") {
+//   global.prisma = prisma;
+// }
+
+// export default async function handler(req, res) {
+//   // Allow CORS for frontend
+//   res.setHeader("Access-Control-Allow-Credentials", "true");
+//   res.setHeader("Access-Control-Allow-Origin", "https://justicekonnect.vercel.app");
+//   res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+//   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+//   // Handle preflight request
+//   if (req.method === "OPTIONS") {
+//     return res.status(200).end();
+//   }
+
+//   //  POST only
+//   if (req.method !== "POST") {
+//     return res.status(405).json({ message: "Method Not Allowed" });
+//   }
+
+//   const { email, password } = req.body;
+//   if (!email || !password) {
+//     return res.status(400).json({ message: "Email and password required" });
+//   }
+
+//   try {
+//     const user = await prisma.user.findUnique({ where: { email } });
+//     if (!user) {
+//       return res.status(401).json({ message: "Invalid credentials" });
+//     }
+
+//     const match = await bcrypt.compare(password, user.password);
+//     if (!match) {
+//       return res.status(401).json({ message: "Invalid credentials" });
+//     }
+//     // Set session cookie with user ID only
+//     res.setHeader(
+//       "Set-Cookie",
+//       cookie.serialize("sessionUserId", String(user.id), {
+//         httpOnly: true,
+//         secure: true,
+//         sameSite: "None",
+//         path: "/",
+//         maxAge: 60 * 60 * 24 * 7, // 7 days
+//       })
+//     );
+
+//     return res.status(200).json({
+//       message: "Login successful",
+//       user,
+//     });
+//   } catch (error) {
+//     console.error("Login error:", error);
+//     return res.status(500).json({ message: "Internal Server Error" });
+//   }
+// }
 
 
 // // pages/api/auth/clientlogin.js

@@ -32,7 +32,7 @@ export const useChatStore = create((set) => ({
         messages: Array.isArray(state.messages) 
           ? [...state.messages, msg] 
           : [msg] 
-      }));
+      })).slice(________);
       return msg;
     } catch (e) { 
       console.error("Error sending message:", e);

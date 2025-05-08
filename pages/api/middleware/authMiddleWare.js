@@ -1,6 +1,5 @@
 // pages/api/middleware/authMiddleWare.js
-import cookie from "cookie";
-
+import * as cookie from "cookie";
 export default function authenticateToken(handler) {
   return async function (req, res) {
     try {

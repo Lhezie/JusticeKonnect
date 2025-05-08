@@ -34,22 +34,6 @@ function MyApp({ Component, pageProps }) {
   
     init();
   }, [refreshSession, router]);
-  
-  // useEffect(() => {
-  //   const init = async () => {
-  //     try {
-  //       await refreshAccessToken();
-  //     } catch (err) {
-  //       console.warn("Token refresh failed", err);
-  //       // Optional: redirect to login page if refresh fails
-  //       router.push("/clientLoginPage");
-  //     } finally {
-  //       setLoading(false);
-  //     }
-  //   };
-  //   init();
-  // }, [refreshAccessToken, router]);
-
   if (loading) {
     return <Loader />;
   }

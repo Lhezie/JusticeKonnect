@@ -49,7 +49,7 @@ const ClientDashboard = () => {
         
         // Fetch cases statistics
         try {
-          const statsResponse = await fetch('/api/client/case-stats', {
+          const statsResponse = await fetch('https://justicekonnectapp.onrender.com/api/client/case-stat', {
             method: 'GET',
             headers: {
               'Content-Type': 'application/json',
@@ -75,7 +75,7 @@ const ClientDashboard = () => {
         
         // Fetch assigned lawyer and most recent case
         try {
-          const caseResponse = await fetch('/api/client/case-lawyer', {
+          const caseResponse = await fetch('https://justicekonnectapp.onrender.com/api/client/case-lawyer', {
             method: 'GET',
             headers: {
               'Content-Type': 'application/json',
@@ -123,7 +123,7 @@ const ClientDashboard = () => {
     }
     
     try {
-      const response = await fetch('/api/client/book-appointment', {
+      const response = await fetch('https://justicekonnectapp.onrender.com/api/client/book-appointment', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
