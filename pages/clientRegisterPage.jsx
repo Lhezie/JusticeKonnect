@@ -1,5 +1,5 @@
 // pages/clientRegisterPage.jsx
-"use client"; // Ensure client-side rendering
+"use client";
 
 import { useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
@@ -41,7 +41,7 @@ export default function ClientRegisterPage() {
   const handleRegister = async (values, { setSubmitting, resetForm }) => {
     try {
       await axios.post(
-        "/api/auth/clientregister",   // absolute API path
+        "/api/auth/clientregister",
         {
           fullName: values.fullName,
           email: values.email,
@@ -70,13 +70,21 @@ export default function ClientRegisterPage() {
   return (
     <div>
       <ToastContainer />
-      <div className="flex justify-center items-center min-h-screen px-4">
-        <div className="w-full max-w-md p-6 rounded-lg shadow-lg">
+      <div
+        className="relative min-h-screen bg-cover bg-center flex flex-col justify-center items-center px-4"
+        style={{
+          backgroundImage: 'url("/allGravel.png")',
+        }}
+      >
+        {/* Optional dark overlay */}
+        <div className="absolute inset-0 bg-black opacity-40 z-0"></div>
+
+        <div className="relative z-10 w-full max-w-md p-6 rounded-lg shadow-lg bg-blue-100">
           {/* LOGO */}
           <div className="flex justify-center mb-6">
-            <div className="w-24 h-24 rounded-full overflow-hidden flex items-center justify-center shadow-lg">
+            <div className="w-32 h-32 rounded-full overflow-hidden flex items-center justify-center ">
               <Image
-                src="/LogoOnee.png"
+                src="/logoTwo.png"
                 width={96}
                 height={96}
                 alt="Logo"
@@ -223,9 +231,9 @@ export default function ClientRegisterPage() {
 
                 {/* Submit Button */}
                 <button
-                  type="submit" 
+                  type="submit"
                   disabled={isSubmitting}
-                  className="w-full bg-blue-400 text-white p-3 rounded-md font-semibold"
+                  className="w-full bg-blue-400 hover:bg-blue-500 text-white p-3 rounded-br-3xl rounded-tl-3xl font-semibold transition-all"
                 >
                   {isSubmitting ? "Registering..." : "Sign Up"}
                 </button>

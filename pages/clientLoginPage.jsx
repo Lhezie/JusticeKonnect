@@ -9,15 +9,15 @@ import "react-toastify/dist/ReactToastify.css";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
 import axios from "axios";
-import useAuth from "../store/authProvider.jsx";  // ✅ double-check your filename here
+import useAuth from "../store/authProvider.jsx";
 
 export default function ClientLoginPage() {
   const router = useRouter();
   const pathname = usePathname();
   const [showPassword, setShowPassword] = useState(false);
-  const setAuth = useAuth((s) => s.setAuth);  // ✅ get setAuth from Zustand store
+  const setAuth = useAuth((s) => s.setAuth);
 
-  // Validation schema using Yup
+  // Validation schema
   const validationSchema = Yup.object().shape({
     email: Yup.string()
       .email("Invalid email address")
@@ -30,16 +30,12 @@ export default function ClientLoginPage() {
   // Handle form submit
   const handleSubmit = async (values, { setSubmitting }) => {
     try {
-      // ✅ POST to your login API (cookies are set server-side)
       const { data } = await axios.post(
         "/api/auth/clientlogin",
         values,
-        {
-          withCredentials: true,  // ✅ ensure cookies are accepted
-        }
+        { withCredentials: true }
       );
 
-      // ✅ Save user and token into Zustand store
       setAuth({ user: data.user, accessToken: data.accessToken });
 
       toast.success("Login Successful! Redirecting...");
@@ -56,8 +52,17 @@ export default function ClientLoginPage() {
   return (
     <div>
       <ToastContainer />
-      <div className="flex justify-center items-center min-h-screen px-4">
-        <div className="w-full max-w-md p-6 rounded-lg shadow-lg bg-white">
+
+      <div
+        className="relative min-h-screen bg-cover bg-center flex flex-col justify-center items-center px-4"
+        style={{
+          backgroundImage: 'url("/allGravel.png")',
+        }}
+      >
+        {/* Optional dark overlay for better contrast */}
+        <div className="absolute inset-0 bg-black opacity-40 z-0"></div>
+
+        <div className="relative z-10 w-full max-w-md p-6 rounded-lg shadow-lg bg-blue-50">
           {/* LOGO */}
           <div className="flex justify-center mb-6">
             <div className="w-24 h-24 rounded-full overflow-hidden flex items-center justify-center shadow-lg">
@@ -78,7 +83,7 @@ export default function ClientLoginPage() {
               className={`w-1/2 text-center pb-2 ${
                 pathname === "/clientRegisterPage"
                   ? "text-black font-bold"
-                  : "text-gray-500"
+                  : "text-gray-700"
               }`}
             >
               SIGN UP
@@ -91,7 +96,7 @@ export default function ClientLoginPage() {
               className={`w-1/2 text-center pb-2 ${
                 pathname === "/clientLoginPage"
                   ? "text-black font-bold"
-                  : "text-gray-500"
+                  : "text-gray-700"
               }`}
             >
               LOGIN
@@ -152,7 +157,7 @@ export default function ClientLoginPage() {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full bg-blue-400 text-white p-3 rounded-md font-semibold"
+                  className="w-full bg-blue-400 hover:bg-blue-500 text-white p-3 rounded-br-3xl rounded-tl-3xl  font-semibold transition-all"
                 >
                   {isSubmitting ? "Logging In..." : "Log In"}
                 </button>

@@ -1,0 +1,15 @@
+.animated-border-card::before {
+    content: '';
+    position: absolute;
+    top: -2px; left: -2px; right: -2px; bottom: -2px;
+    z-index: -1;
+    border-radius: 0.75rem;
+    background: linear-gradient(270deg, #3B82F6, #FACC15, #3B82F6);
+    background-size: 600% 600%;
+    animation: moveBorder 6s linear infinite;
+  }
+  @keyframes moveBorder {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
